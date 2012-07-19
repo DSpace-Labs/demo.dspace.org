@@ -273,6 +273,9 @@
                                 var runAfterJSImports = new FnArray();
             </script>
 
+	    <!--JAVASCRIPT FOR DURASPACE JIRA FEEDBACK SYSTEM ON DEMO.DSPACE.ORG-->
+            <script type="text/javascript" src="https://jira.duraspace.org/s/en_US-qzzyst/732/13/1.1/_/download/batch/com.atlassian.jira.collector.plugin.jira-issue-collector-plugin:issuecollector/com.atlassian.jira.collector.plugin.jira-issue-collector-plugin:issuecollector.js?collectorId=60e7afac">&#160;</script>
+
             <!-- Modernizr enables HTML5 elements & feature detects -->
             <script type="text/javascript">
                 <xsl:attribute name="src">

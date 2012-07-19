@@ -80,6 +80,23 @@
     <script type="text/javascript" src="<%= request.getContextPath() %>/static/js/scriptaculous/builder.js"> </script>
     <script type="text/javascript" src="<%= request.getContextPath() %>/static/js/scriptaculous/controls.js"> </script>
     <script type="text/javascript" src="<%= request.getContextPath() %>/static/js/choice-support.js"> </script>
+
+    <!--JAVASCRIPT FOR DURASPACE JIRA FEEDBACK SYSTEM ON DEMO.DSPACE.ORG-->
+    <script src="http://code.jquery.com/jquery-latest.js"></script>
+    <script>
+	// This bit of Javascript uses the JIRA Issue Collector plugin to embed
+	// an easy-to-use JIRA issue creator form into every page. See:
+	// https://marketplace.atlassian.com/plugins/com.atlassian.jira.collector.plugin.jira-issue-collector-plugin
+	// https://confluence.atlassian.com/display/JIRA/Using+the+Issue+Collector
+	// Requires jQuery!
+	$.ajax({
+    		url: "https://jira.duraspace.org/s/en_US-qzzyst/732/13/1.1/_/download/batch/com.atlassian.jira.collector.plugin.jira-issue-collector-plugin:issuecollector-embededjs/com.atlassian.jira.collector.plugin.jira-issue-collector-plugin:issuecollector-embededjs.js?collectorId=60e7afac",
+    		type: "get",
+    		cache: true,
+    		dataType: "script"
+	});
+    </script>
+
     </head>
 
     <%-- HACK: leftmargin, topmargin: for non-CSS compliant Microsoft IE browser --%>
