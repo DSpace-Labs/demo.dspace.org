@@ -2,8 +2,30 @@
 <document xmlns="http://di.tamu.edu/DRI/1.0/" xmlns:i18n="http://apache.org/cocoon/i18n/2.1" version="1.1">
 <body>
 <div id="file.news.div.news" n="news" rend="primary">
-<head>DSpace/Manakin Repository</head>
-<p>Welcome to the new Manakin interface to the DSpace digital repository.  DSpace is a digital service that collects, preserves, and distributes digital material. Repositories are important tools for preserving an organization&apos;s legacy; they facilitate digital preservation and scholarly communication.</p>
+<head>DSpace Demo Repository</head>
+<p>Welcome to the DSpace.org demostration/sample repository (Manakin / XMLUI interface)!</p>
+<p>This repository is currently running on <hi rend="bold">DSpace version 1.8.2</hi>, with the folowing extra features enabled:
+  <list>
+	<item>Embargo option in Submission process</item>
+	<item>Authority Control (on Authors and Publishers) in Submission process</item>
+	<item>Community/Collection/Item Statistics are publicly visible</item>
+	<item>OpenSearch</item>
+	<item>Google Scholar metadata</item>
+	<item>DSpace Discovery (faceted search/browse)</item>
+	<item>Mirage Theme</item>
+	<item>SWORD Client</item>
+  </list>
+</p>
+<br />
+<p>The following Demo Users are set up in the system (all users have password equal to the lowercase name of this software):
+  <list>
+	<item>Demo Site Administrator = dspacedemo+admin@gmail.com</item>
+	<item>Demo Community Administrator = dspacedemo+commadmin@gmail.com</item>
+	<item>Demo Collection Administrator = dspacedemo+colladmin@gmail.com</item>
+	<item>Demo Submitter = dspacedemo+submit@gmail.com</item>
+  </list>
+</p>
+<p>(You may also create your own user by registering with the system)</p>
 </div>
 </body>
 <options/>
