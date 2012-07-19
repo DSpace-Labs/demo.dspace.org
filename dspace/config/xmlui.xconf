@@ -80,7 +80,7 @@
             as leaving it on together with discovery will cause UI overlap issues-->
             <aspect name="Discovery" path="resource://aspects/Discovery/" />
         
-        <!--<aspect name="SwordClient" path="resource://aspects/SwordClient/" />-->
+        <aspect name="SwordClient" path="resource://aspects/SwordClient/" />
 
         <!--
             This aspect tests the various possible DRI features, 
