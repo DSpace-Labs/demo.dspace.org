@@ -38,6 +38,16 @@
 
     <build>
       <plugins>
+         <!--Override compilation settings in 'dspace-pom' to allow DSpace to compile under Java 7-->
+	 <plugin>
+                <!-- DSpace requires Java 1.6 or higher -->
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.3.2</version>
+                <configuration>
+                    <source>1.7</source>
+                    <target>1.7</target>
+                </configuration>
+         </plugin>
          <plugin>
             <artifactId>maven-release-plugin</artifactId>
             <!-- Because of below bug, we are forced to use version 2.0-beta-9
