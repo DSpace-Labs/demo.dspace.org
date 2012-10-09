@@ -4,21 +4,14 @@
 	<artifactId>modules</artifactId>
 	<packaging>pom</packaging>
 	<name>DSpace Addon Modules</name>
-	<url>http://www.dspace.org</url>
 	<description>DSpace Addon Modules</description>
 
 	<parent>
 		<groupId>org.dspace</groupId>
 		<artifactId>dspace-parent</artifactId>
-		<version>1.8.2</version>
+		<version>3.0-SNAPSHOT</version>
 		<relativePath>../../pom.xml</relativePath>
 	</parent>
-
-    <scm>
-      <connection>scm:svn:https://scm.dspace.org/svn/repo/tags/dspace-1.8.2</connection>
-      <developerConnection>scm:svn:https://scm.dspace.org/svn/repo/tags/dspace-1.8.2</developerConnection>
-      <url>http://scm.dspace.org/svn/repo/tags/dspace-1.8.2</url>
-    </scm>
     
     <!-- 
          List of enabled DSpace Modules to build/install.
@@ -32,6 +25,15 @@
          compiling of the corresponding source module.
     -->
     <profiles>
+       <profile>
+          <id>dspace-additions</id>
+          <activation>
+             <activeByDefault>true</activeByDefault>
+          </activation>
+          <modules>
+             <module>additions</module>
+          </modules>
+       </profile>
         <profile>
             <id>dspace-xmlui</id>
             <activation>
@@ -48,15 +50,6 @@
             </activation>
             <modules>
                 <module>lni</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>dspace-oai</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <modules>
-                <module>oai</module>
             </modules>
         </profile>
         <profile>
@@ -93,6 +86,15 @@
             </activation>
             <modules>
                 <module>solr</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>dspace-xoai</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <modules>
+                <module>oai</module>
             </modules>
         </profile>
     </profiles>

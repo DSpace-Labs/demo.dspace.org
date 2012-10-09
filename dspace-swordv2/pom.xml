@@ -5,32 +5,23 @@
     <packaging>war</packaging>
     <name>DSpace SWORD v2 :: Web Application Resources</name>
     <description>DSpace SWORD v2 Deposit Service Provider Web Application</description>
-    <url>http://projects.dspace.org/dspace-sword-webapp</url>
 
     <!--
        A Parent POM that Maven inherits DSpace Default
-       POM atrributes from.
+       POM attributes from.
     -->
     <parent>
         <groupId>org.dspace</groupId>
         <artifactId>dspace-parent</artifactId>
-        <version>1.8.2</version>
+        <version>3.0-SNAPSHOT</version>
         <relativePath>..</relativePath>
     </parent>
 
-    <!--
-       The Subversion repository location is used by Continuum to update against
-       when changes have occurred, this spawns a new build cycle and releases snapshots
-       into the snapshot repository below.
-    -->
-    <scm>
-        <connection>scm:svn:http://scm.dspace.org/svn/repo/tags/dspace-1.8.2</connection>
-        <developerConnection>scm:svn:https://scm.dspace.org/svn/repo/tags/dspace-1.8.2</developerConnection>
-        <url>http://scm.dspace.org/svn/repo/tags/dspace-1.8.2</url>
-    </scm>
-
     <build>
-        <plugins>
+        <filters>
+            <filter>${basedir}/../${filters.file}</filter>
+        </filters>
+		<plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
@@ -41,7 +32,7 @@
                     <warSourceExcludes>WEB-INF/lib/*.jar</warSourceExcludes>
                     <webResources>
                         <resource>
-                            <filtering>true</filtering>
+                            <filtering>false</filtering>
                             <directory>${basedir}/src/main/webapp</directory>
                             <includes>
                                 <include>WEB-INF/web.xml</include>
@@ -60,26 +51,6 @@
 
 
     <profiles>
-        <!--
-           when activated a dspace.config configuration
-           file location passed on the commandline
-           (-Ddspace.config=...) can be passed through
-           to be used as a filter source by projects for
-           tasks such as updating the ${dspace.dir} in
-           web.xml etc.
-        -->
-        <profile>
-            <activation>
-                <property>
-                    <name>dspace.config</name>
-                </property>
-            </activation>
-            <build>
-                <filters>
-                    <filter>${dspace.config}</filter>
-                </filters>
-            </build>
-        </profile>
         <profile>
             <id>oracle-support</id>
             <activation>
@@ -115,7 +86,7 @@
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>servlet-api</artifactId>
-            <version>2.3</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.swordapp</groupId>

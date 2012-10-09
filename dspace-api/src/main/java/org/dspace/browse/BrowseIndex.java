@@ -57,10 +57,15 @@ public final class BrowseIndex
 
     /** default order (asc / desc) for this index */
     private String defaultOrder = SortOption.ASCENDING;
+    
+    /** whether to display frequencies or not, in case of a "metadata" browse index*/
+    private boolean displayFrequencies = true;
 
     /** additional 'internal' tables that are always defined */
     private static BrowseIndex itemIndex      = new BrowseIndex("bi_item");
     private static BrowseIndex withdrawnIndex = new BrowseIndex("bi_withdrawn");
+    private static BrowseIndex privateIndex = new BrowseIndex("bi_private");
+
 
     /**
      * Ensure no one else can create these
@@ -301,6 +306,10 @@ public final class BrowseIndex
 	    return sortOption;
 	}
 	
+	public boolean isDisplayFrequencies() {
+		return displayFrequencies;
+	}
+
 	/**
 	 * Populate the internal array containing the bits of metadata, for
 	 * ease of use later
@@ -680,6 +689,12 @@ public final class BrowseIndex
         while ( ((definition = ConfigurationManager.getProperty("webui.browse.index." + idx))) != null)
         {
             BrowseIndex bi = new BrowseIndex(definition, idx);
+            
+            //Load the frequency configuration
+            String freqDefinition = ConfigurationManager.getProperty("webui.browse.metadata.show-freq." + idx);
+            if (freqDefinition!=null)
+            	bi.displayFrequencies = Boolean.valueOf(freqDefinition);
+            
             browseIndices.add(bi);
             idx++;
         }
@@ -750,6 +765,12 @@ public final class BrowseIndex
     {
         return BrowseIndex.withdrawnIndex;
     }
+
+
+    public static BrowseIndex getPrivateBrowseIndex()
+    {
+        return BrowseIndex.privateIndex;
+    }
     
     /**
      * Take a string representation of a metadata field, and return it as an array.
@@ -790,7 +811,7 @@ public final class BrowseIndex
      */
     public boolean isInternalIndex()
     {
-        return (this == itemIndex || this == withdrawnIndex);
+        return (this == itemIndex || this == withdrawnIndex || this == privateIndex);
     }
 
     /**

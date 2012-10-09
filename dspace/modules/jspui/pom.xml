@@ -4,58 +4,16 @@
 	<artifactId>jspui</artifactId>
 	<packaging>war</packaging>
 	<name>DSpace JSP-UI :: Web Application</name>
-	<url>http://www.dspace.org</url>
 	<description>DSpace JSP-UI :: Web Application</description>
 
 	<parent>
 		<groupId>org.dspace</groupId>
 		<artifactId>modules</artifactId>
-		<version>1.8.2</version>
-        <relativePath>..</relativePath>
+		<version>3.0-SNAPSHOT</version>
+      <relativePath>..</relativePath>
 	</parent>
 
 	<profiles>
-
-		<!-- 
-			This profile is used by all children such that
-			when activated a dspace.config configuration
-			file location passed on the commandline 
-			(-Ddspace.config=...) can be passed through 
-			to be used as a filter source by projects for 
-			tasks such as updating the ${dspace.dir} in
-			web.xml etc.
-			
-			When activated, the child project will inherit
-			the configuration.
-		-->
-		<profile>
-            <id>dspace-config</id>
-			<activation>
-				<property>
-					<name>dspace.config</name>
-				</property>
-			</activation>
-			<build>
-				<filters>
-					<filter>${dspace.config}</filter>
-				</filters>
-			</build>
-		</profile>
-
-		<profile>
-			<id>postgres-support</id>
-			<activation>
-				<property>
-					<name>!db.name</name>
-				</property>
-			</activation>
-			<dependencies>
-				<dependency>
-					<groupId>postgresql</groupId>
-					<artifactId>postgresql</artifactId>
-				</dependency>
-			</dependencies>
-		</profile>
 		<profile>
 			<id>oracle-support</id>
 			<activation>
@@ -71,16 +29,11 @@
 				</dependency>
 			</dependencies>
 		</profile>
-
-	</profiles>
-
-	<scm>
-		<connection>scm:svn:https://scm.dspace.org/svn/repo/tags/dspace-1.8.2</connection>
-		<developerConnection>scm:svn:https://scm.dspace.org/svn/repo/tags/dspace-1.8.2</developerConnection>
-		<url>http://scm.dspace.org/svn/repo/tags/dspace-1.8.2</url>
-	</scm>
-
+	</profiles>	
 	<build>
+        <filters>
+            <filter>${basedir}/../../../${filters.file}</filter>
+        </filters>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -89,7 +42,7 @@
 					<archiveClasses>false</archiveClasses>
 					<webResources>
 						<resource>
-							<filtering>true</filtering>
+							<filtering>false</filtering>
 							<directory>
 								${basedir}/src/main/webapp
 							</directory>
@@ -98,6 +51,14 @@
 							</includes>
 						</resource>
 					</webResources>
+					<overlays>
+						<overlay></overlay>
+						<overlay>
+							<groupId>org.dspace</groupId>
+							<artifactId>dspace-jspui</artifactId>
+							<type>war</type>
+						</overlay>
+					</overlays>
 				</configuration>
 				<executions>
 					<execution>
@@ -109,27 +70,28 @@
 	</build>
 
 	<dependencies>
+		
+		<dependency>
+			<groupId>org.dspace.modules</groupId>
+			<artifactId>additions</artifactId>
+		</dependency>
 
 		<dependency>
 			<groupId>org.dspace</groupId>
-			<artifactId>dspace-jspui-webapp</artifactId>
+			<artifactId>dspace-jspui</artifactId>
 			<type>war</type>
 		</dependency>
 
 		<dependency>
 			<groupId>org.dspace</groupId>
-			<artifactId>dspace-jspui-api</artifactId>
+			<artifactId>dspace-jspui</artifactId>
+            <type>jar</type>
+            <classifier>classes</classifier>
 		</dependency>
-
-		<dependency>
-           <groupId>org.dspace</groupId>
-           <artifactId>dspace-discovery-provider</artifactId>
-        </dependency>
 
 		<dependency>
 		   <groupId>javax.servlet</groupId>
 		   <artifactId>servlet-api</artifactId>
-		   <version>2.3</version>
 		   <scope>provided</scope>
 		</dependency>
 	</dependencies>
