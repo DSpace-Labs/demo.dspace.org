@@ -4,7 +4,7 @@
    <groupId>org.dspace</groupId>
    <artifactId>dspace-parent</artifactId>
    <packaging>pom</packaging>
-   <version>3.0-rc2-SNAPSHOT</version>
+   <version>3.0-rc3-SNAPSHOT</version>
    <name>DSpace Parent Project</name>
    <url>https://github.com/dspace/DSpace</url>
 
@@ -28,17 +28,20 @@
     </properties>
 
     <build>
-      <plugins>
-           <plugin>
-                <!-- DSpace requires Java 1.6 or higher -->
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>2.3.2</version>
-                <configuration>
+      <!-- Define Maven Plugin Settings that should be inherited to ALL submodule POMs.
+           (NOTE: individual POMs can override specific settings). -->
+      <pluginManagement>
+          <plugins>
+              <plugin>
+                  <!-- DSpace requires Java 1.6 or higher -->
+                  <artifactId>maven-compiler-plugin</artifactId>
+                  <version>2.3.2</version>
+                  <configuration>
                     <source>1.6</source>
                     <target>1.6</target>
-                </configuration>
-            </plugin>
-            <plugin>
+                  </configuration>
+              </plugin>
+              <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>2.3.2</version>
@@ -50,38 +53,8 @@
                         </manifest>
                     </archive>
                 </configuration>
-         </plugin>
-         <plugin>
-            <artifactId>maven-release-plugin</artifactId>
-            <!-- Because of below bug, we are forced to use version 2.0-beta-9
-                 http://jira.codehaus.org/browse/MRELEASE-620 -->
-            <version>2.0-beta-9</version>
-            <configuration>
-                <!-- During release:perform, enable the "addons" profile -->
-                <releaseProfiles>addons</releaseProfiles>
-                <goals>deploy</goals>
-                <!-- Auto-Version all modules the same as the parent module -->
-                <autoVersionSubmodules>true</autoVersionSubmodules>
-            </configuration>
-         </plugin>
-         <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-surefire-plugin</artifactId>
-             <version>2.6</version>
-            <!-- tests whose name starts by Abstract will be ignored -->
-            <configuration>
-	        <excludes>
-	            <exclude>**/Abstract*</exclude>
-	        </excludes>
-                <!--
-                Enable to debug Maven Surefire tests in remote proces
-                <debugForkedProcess>true</debugForkedProcess>
-                -->
-                <!-- required when running JMockit under Java 1.5 -->
-                <argLine>-javaagent:"${settings.localRepository}"/org/dspace/dependencies/jmockit/dspace-jmockit/0.999.4/dspace-jmockit-0.999.4.jar</argLine>
-            </configuration>
-         </plugin>
-         <plugin>
+              </plugin>
+              <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
                 <!-- We'd rather this be an open-ended range of versions.
@@ -98,10 +71,54 @@
                         </manifest>
                     </archive>
                 </configuration>
-            </plugin>
-            <plugin>
+             </plugin>
+             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.6</version>
+                <!-- tests whose name starts by Abstract will be ignored -->
+                <configuration>
+                    <excludes>
+                        <exclude>**/Abstract*</exclude>
+                    </excludes>
+                    <!--
+                    Enable to debug Maven Surefire tests in remote proces
+                    <debugForkedProcess>true</debugForkedProcess>
+                    -->
+                    <!-- required when running JMockit under Java 1.5 -->
+                    <argLine>-javaagent:"${settings.localRepository}"/org/dspace/dependencies/jmockit/dspace-jmockit/0.999.4/dspace-jmockit-0.999.4.jar</argLine>
+                </configuration>
+             </plugin>
+             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>2.2.1</version>
+             </plugin>
+             <plugin>
+                <groupId>com.mycila.maven-license-plugin</groupId>
+                <artifactId>maven-license-plugin</artifactId>
+                <version>1.9.0</version>
+             </plugin>
+          </plugins>
+      </pluginManagement>
+
+      <!-- These plugin settings only apply to this single POM and are not inherited
+           to any submodules. -->
+      <plugins>
+         <plugin>
+            <artifactId>maven-release-plugin</artifactId>
+            <version>2.3.2</version>
+            <configuration>
+                <!-- During release:perform, enable the "release" profile (see below) -->
+                <releaseProfiles>release</releaseProfiles>
+                <goals>deploy</goals>
+                <!-- Suggest tagging the release in SCM as "dspace-[version]" -->
+                <tagNameFormat>dspace-@{project.version}</tagNameFormat>
+                <!-- Auto-Version all modules the same as the parent module -->
+                <autoVersionSubmodules>true</autoVersionSubmodules>
+            </configuration>
+         </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
                 <executions>
                     <execution>
                         <phase>generate-test-resources</phase>
@@ -123,10 +140,9 @@
             <plugin>
                 <groupId>com.mycila.maven-license-plugin</groupId>
                 <artifactId>maven-license-plugin</artifactId>
-                <version>1.9.0</version>
                 <configuration>
-                    <!-- external and absolute URL for use in external addon builds -->
-                    <header>https://raw.github.com/DSpace/DSpace/master/LICENSE_HEADER</header>
+                    <!-- License header file (can be a URL, but that's less stable if external site is down on occasion) -->
+                    <header>LICENSE_HEADER</header>
                     <!--Just check headers of everything in the /src directory -->
                     <includes>
                         <include>src/**</include>
@@ -305,14 +321,16 @@
 
 
       <!--
-         Use 'mvn deploy -Paddons' while doing Continuous Integration
-         and deploying addons to the Maven repository.
+         The 'release' profile is used by the 'maven-release-plugin' (see above)
+         to actually perform a DSpace software release to Maven central.
        -->
       <profile>
-         <id>addons</id>
+         <id>release</id>
          <activation>
             <activeByDefault>false</activeByDefault>
          </activation>
+         <!-- Activate all modules *except* for the 'dspace' module,
+              as it does not include any Java source code to release. -->
          <modules>
             <module>dspace-api</module>
             <module>dspace-jspui</module>
@@ -325,8 +343,8 @@
       </profile>
 
       <!--
-         Use 'mvn package -Pdistributions' to create distributions
-         to upload to S.F.
+         Run this profile (e.g. 'mvn package -Pdistributions') to create
+         zip / tarball distributions to upload to SourceForge or similar.
        -->
       <profile>
          <id>distributions</id>
@@ -387,71 +405,71 @@
          <dependency>
             <groupId>org.dspace</groupId>
             <artifactId>dspace-api</artifactId>
-            <version>3.0-rc2-SNAPSHOT</version>
+            <version>3.0-rc3-SNAPSHOT</version>
          </dependency>
          <dependency>
             <groupId>org.dspace.modules</groupId>
             <artifactId>additions</artifactId>
-            <version>3.0-rc2-SNAPSHOT</version>
+            <version>3.0-rc3-SNAPSHOT</version>
          </dependency>
 
           <dependency>
               <groupId>org.dspace</groupId>
               <artifactId>dspace-sword</artifactId>
-              <version>3.0-rc2-SNAPSHOT</version>
+              <version>3.0-rc3-SNAPSHOT</version>
               <type>jar</type>
               <classifier>classes</classifier>
           </dependency>
           <dependency>
               <groupId>org.dspace</groupId>
               <artifactId>dspace-sword</artifactId>
-              <version>3.0-rc2-SNAPSHOT</version>
+              <version>3.0-rc3-SNAPSHOT</version>
               <type>war</type>
           </dependency>
           <dependency>
               <groupId>org.dspace</groupId>
               <artifactId>dspace-swordv2</artifactId>
-              <version>3.0-rc2-SNAPSHOT</version>
+              <version>3.0-rc3-SNAPSHOT</version>
               <type>jar</type>
               <classifier>classes</classifier>
           </dependency>
           <dependency>
               <groupId>org.dspace</groupId>
               <artifactId>dspace-swordv2</artifactId>
-              <version>3.0-rc2-SNAPSHOT</version>
+              <version>3.0-rc3-SNAPSHOT</version>
               <type>war</type>
           </dependency>
 
          <dependency>
             <groupId>org.dspace</groupId>
             <artifactId>dspace-jspui</artifactId>
-            <version>3.0-rc2-SNAPSHOT</version>
+            <version>3.0-rc3-SNAPSHOT</version>
              <type>jar</type>
              <classifier>classes</classifier>
          </dependency>
          <dependency>
             <groupId>org.dspace</groupId>
             <artifactId>dspace-jspui</artifactId>
-            <version>3.0-rc2-SNAPSHOT</version>
+            <version>3.0-rc3-SNAPSHOT</version>
             <type>war</type>
          </dependency>
          <dependency>
             <groupId>org.dspace</groupId>
             <artifactId>dspace-oai</artifactId>
-            <version>3.0-rc2-SNAPSHOT</version>
+            <version>3.0-rc3-SNAPSHOT</version>
              <type>jar</type>
              <classifier>classes</classifier>
          </dependency>
          <dependency>
             <groupId>org.dspace</groupId>
             <artifactId>dspace-oai</artifactId>
-            <version>3.0-rc2-SNAPSHOT</version>
+            <version>3.0-rc3-SNAPSHOT</version>
             <type>war</type>
          </dependency>
          <dependency>
             <groupId>org.dspace</groupId>
             <artifactId>dspace-lni</artifactId>
-            <version>3.0-rc2-SNAPSHOT</version>
+            <version>3.0-rc3-SNAPSHOT</version>
              <type>jar</type>
              <classifier>classes</classifier>
          </dependency>
@@ -463,26 +481,26 @@
          <dependency>
             <groupId>org.dspace</groupId>
             <artifactId>dspace-lni</artifactId>
-            <version>3.0-rc2-SNAPSHOT</version>
+            <version>3.0-rc3-SNAPSHOT</version>
             <type>war</type>
          </dependency>
          <dependency>
             <groupId>org.dspace</groupId>
             <artifactId>dspace-xmlui</artifactId>
-            <version>3.0-rc2-SNAPSHOT</version>
+            <version>3.0-rc3-SNAPSHOT</version>
              <type>jar</type>
              <classifier>classes</classifier>
          </dependency>
          <dependency>
             <groupId>org.dspace</groupId>
             <artifactId>dspace-xmlui</artifactId>
-            <version>3.0-rc2-SNAPSHOT</version>
+            <version>3.0-rc3-SNAPSHOT</version>
             <type>war</type>
          </dependency>
          <dependency>
             <groupId>org.dspace</groupId>
             <artifactId>dspace-services</artifactId>
-            <version>3.0-rc2-SNAPSHOT</version>
+            <version>3.0-rc3-SNAPSHOT</version>
          </dependency>
          <!-- DSpace Localization Packages -->
          <dependency>
@@ -503,53 +521,53 @@
               <artifactId>sword-common</artifactId>
               <version>1.1</version>
           </dependency>
-                 <!-- Explicitly Specify Latest Version of Spring -->
+        <!-- Explicitly Specify Latest Version of Spring -->
         <dependency>
             <artifactId>spring-core</artifactId>
             <groupId>org.springframework</groupId>
-            <version>3.1.2.RELEASE</version>
+            <version>3.1.1.RELEASE</version>
         </dependency>
 
         <dependency>
             <artifactId>spring-beans</artifactId>
             <groupId>org.springframework</groupId>
-            <version>3.1.2.RELEASE</version>
+            <version>3.1.1.RELEASE</version>
         </dependency>
 
         <dependency>
             <artifactId>spring-aop</artifactId>
             <groupId>org.springframework</groupId>
-            <version>3.1.2.RELEASE</version>
+            <version>3.1.1.RELEASE</version>
         </dependency>
 
         <dependency>
             <artifactId>spring-context</artifactId>
             <groupId>org.springframework</groupId>
-            <version>3.1.2.RELEASE</version>
+            <version>3.1.1.RELEASE</version>
         </dependency>
 
         <dependency>
             <artifactId>spring-tx</artifactId>
             <groupId>org.springframework</groupId>
-            <version>3.1.2.RELEASE</version>
+            <version>3.1.1.RELEASE</version>
         </dependency>
 
         <dependency>
             <artifactId>spring-jdbc</artifactId>
             <groupId>org.springframework</groupId>
-            <version>3.1.2.RELEASE</version>
+            <version>3.1.1.RELEASE</version>
         </dependency>
 
         <dependency>
             <artifactId>spring-web</artifactId>
             <groupId>org.springframework</groupId>
-            <version>3.1.2.RELEASE</version>
+            <version>3.1.1.RELEASE</version>
         </dependency>
 
         <dependency>
             <artifactId>spring-webmvc</artifactId>
             <groupId>org.springframework</groupId>
-            <version>3.1.2.RELEASE</version>
+            <version>3.1.1.RELEASE</version>
         </dependency>
 
          <dependency>
@@ -1122,7 +1140,8 @@
       <connection>scm:git:git@github.com:DSpace/DSpace.git</connection>
       <developerConnection>scm:git:git@github.com:DSpace/DSpace.git</developerConnection>
       <url>git@github.com:DSpace/DSpace.git</url>
-   </scm>
+     <tag>HEAD</tag>
+  </scm>
 
     <!--
         Distribution Management is currently used by the Continuum
