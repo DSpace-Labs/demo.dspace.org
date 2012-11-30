@@ -284,6 +284,9 @@
                     <xsl:text>/lib/js/modernizr-1.7.min.js</xsl:text>
                 </xsl:attribute>&#160;</script>
 
+<script type="text/javascript" src="/xmlui/themes/mobile/lib/detectmobile.js">&#160;</script>
+<script type="text/javascript" src="/xmlui/themes/mobile/lib/cookies.js">&#160;</script>
+
             <!-- Add the title in -->
             <xsl:variable name="page_title" select="/dri:document/dri:meta/dri:pageMeta/dri:metadata[@element='title']" />
             <title>
@@ -540,6 +543,8 @@
                         </xsl:attribute>
                         <i18n:text>xmlui.dri2xhtml.structural.feedback-link</i18n:text>
                     </a>
+<xsl:text> | </xsl:text>
+<a href="#" onclick="eraseCookie('viewfull');window.location='http://mobile.demo.dspace.org';">View mobile site (beta)</a>
                 </div>
                 <!--Invisible link to HTML sitemap (for search engines) -->
                 <a class="hidden">

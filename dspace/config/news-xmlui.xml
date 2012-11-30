@@ -4,7 +4,7 @@
 <div id="file.news.div.news" n="news" rend="primary">
 <head>DSpace Demo Repository</head>
 <p>Welcome to the DSpace.org demostration/sample repository (Manakin / XMLUI interface)!</p>
-<p>This repository is currently running on <hi rend="bold">DSpace version 3.0 Release Candidate #1</hi>, with the following extra features enabled:
+<p>This repository is currently running on <hi rend="bold">DSpace version 3.0 Release Candidate #3</hi>, with the following extra features enabled:
   <list>
 	<item>Embargo option in Submission process</item>
 	<item>Authority Control (on Authors and Publishers) in Submission process</item>
@@ -12,8 +12,8 @@
 	<item>OpenSearch</item>
 	<item>Google Scholar metadata</item>
 	<item>DSpace Discovery (faceted search/browse)</item>
-	<item>Mirage Theme</item>
 	<item>SWORD Client</item>
+	<item><xref target="http://mobile.demo.dspace.org/xmlui/">Mobile Theme</xref></item>
   </list>
 </p>
 <br />
