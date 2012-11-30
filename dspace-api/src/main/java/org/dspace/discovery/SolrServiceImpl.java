@@ -166,7 +166,7 @@ public class SolrServiceImpl implements SearchService, IndexingService {
                          * Make sure the item is not in the index if it is not in
                          * archive or withwrawn.
                          */
-                        unIndexContent(context, handle);
+                        unIndexContent(context, item);
                         log.info("Removed Item: " + handle + " from Index");
                     }
                     break;
@@ -1654,7 +1654,7 @@ public class SolrServiceImpl implements SearchService, IndexingService {
 
                 if(solrQueryResponse.getHighlighting() != null)
                 {
-                    Map<String, List<String>> highlightedFields = solrQueryResponse.getHighlighting().get(dso.getHandle());
+                    Map<String, List<String>> highlightedFields = solrQueryResponse.getHighlighting().get(dso.getType() + "-" + dso.getID());
                     if(MapUtils.isNotEmpty(highlightedFields))
                     {
                         //We need to remove all the "_hl" appendix strings from our keys

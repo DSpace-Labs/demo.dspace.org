@@ -9,9 +9,14 @@
 	<parent>
 		<groupId>org.dspace</groupId>
 		<artifactId>dspace-parent</artifactId>
-		<version>3.0-rc3</version>
+		<version>3.0</version>
 		<relativePath>../../pom.xml</relativePath>
 	</parent>
+
+    <properties>
+        <!-- This is the path to the root [dspace-src] directory. -->
+        <root.basedir>${basedir}/../..</root.basedir>
+    </properties>
 
     <!-- The 'additions' module must *always* be built, as it is included
          as a dependency in most other modules in [src]/dspace/modules -->

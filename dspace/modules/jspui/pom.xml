@@ -12,9 +12,14 @@
     <parent>
         <groupId>org.dspace</groupId>
         <artifactId>modules</artifactId>
-        <version>3.0-rc3</version>
+        <version>3.0</version>
         <relativePath>..</relativePath>
     </parent>
+
+    <properties>
+        <!-- This is the path to the root [dspace-src] directory. -->
+        <root.basedir>${basedir}/../../..</root.basedir>
+    </properties>
 
     <profiles>
         <profile>
@@ -36,7 +41,8 @@
     
     <build>
         <filters>
-            <filter>${basedir}/../../../${filters.file}</filter>
+            <!-- Filter using the properties file defined by dspace-parent POM -->
+            <filter>${filters.file}</filter>
         </filters>
         <plugins>
             <plugin>
@@ -46,7 +52,7 @@
                     <archiveClasses>false</archiveClasses>
                     <webResources>
                         <resource>
-                            <filtering>false</filtering>
+                            <filtering>true</filtering>
                             <directory>
                                 ${basedir}/src/main/webapp
                             </directory>

@@ -2,7 +2,7 @@
    <modelVersion>4.0.0</modelVersion>
    <groupId>org.dspace.modules</groupId>
    <artifactId>solr</artifactId>
-   <version>3.0-rc3</version>
+   <version>3.0</version>
    <packaging>war</packaging>
    <name>DSpace SOLR :: Local Customizations</name>
    <description>
@@ -13,9 +13,14 @@
    <parent>
       <groupId>org.dspace</groupId>
       <artifactId>modules</artifactId>
-      <version>3.0-rc3</version>
+      <version>3.0</version>
       <relativePath>..</relativePath>
    </parent>
+
+   <properties>
+       <!-- This is the path to the root [dspace-src] directory. -->
+       <root.basedir>${basedir}/../../..</root.basedir>
+   </properties>
 
    <build>
       <plugins>
