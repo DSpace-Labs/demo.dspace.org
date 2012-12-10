@@ -14,6 +14,7 @@
 	<item>DSpace Discovery (faceted search/browse)</item>
 	<item>SWORD Client</item>
 	<item><xref target="http://mobile.demo.dspace.org/xmlui/">Mobile Theme</xref></item>
+	<item>Elastic Search Statistics (login as admin and browse to any community/collection/item, then choose the last 'View Usage Statistics' link from the menu)</item>
   </list>
 </p>
 <br />
