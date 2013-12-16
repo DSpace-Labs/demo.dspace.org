@@ -436,7 +436,7 @@
 		<!-- For CrossRef service you need to obtain an API Key from CrossRef. Once you get it, add it 
 			 to the following configuration value 
 		-->
-		<property name="apiKey" value="" />
+		<property name="apiKey" value="tdonohue@duraspace.org" />
 		<!-- Uncomment the following line if you want to define the max results returned by the 
 			 CrossRef free text (by author, title, date) search. Default value is 10 
 		-->
@@ -486,7 +486,7 @@
                  Once you get it, add it to the following configuration value.
                  For details, see http://ci.nii.ac.jp/info/en/api/developer.html
              -->
-            <property name="appId" value="" />
+            <property name="appId" value="2tZeSFjPvFH1dvfr8Xbq" />
             <!-- Uncomment the following line if you want to define the max results 
                  returned by the CiNii free text (by author, title, date) search. 
                  Default value is 10 
