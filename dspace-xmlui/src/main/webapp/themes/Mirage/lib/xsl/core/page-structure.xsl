@@ -599,7 +599,7 @@
                         <i18n:text>xmlui.dri2xhtml.structural.feedback-link</i18n:text>
                     </a>
 <xsl:text> | </xsl:text>
-<a href="#" onclick="eraseCookie('viewfull');window.location='http://mobile.demo.dspace.org';">View mobile site (beta)</a>
+<a href="#" onclick="eraseCookie('viewfull');window.location='http://mobile.demo.dspace.org';">View mobile site</a>
                 </div>
                 <!--Invisible link to HTML sitemap (for search engines) -->
                 <a class="hidden">
