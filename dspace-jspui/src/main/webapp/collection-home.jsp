@@ -28,6 +28,7 @@
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 <%@ taglib uri="http://www.dspace.org/dspace-tags.tld" prefix="dspace" %>
 
+<%@ page import="org.apache.commons.lang.StringUtils" %>
 <%@ page import="org.dspace.app.webui.components.RecentSubmissions" %>
 
 <%@ page import="org.dspace.app.webui.servlet.admin.EditCommunitiesServlet" %>
@@ -36,12 +37,11 @@
 <%@ page import="org.dspace.browse.BrowseInfo" %>
 <%@ page import="org.dspace.browse.ItemCounter"%>
 <%@ page import="org.dspace.content.*"%>
-<%@ page import="org.dspace.core.ConfigurationManager"%>
-<%@ page import="org.dspace.core.Context" %>
+<%@ page import="org.dspace.core.Utils" %>
 <%@ page import="org.dspace.eperson.Group"     %>
+<%@ page import="org.dspace.services.ConfigurationService" %>
+<%@ page import="org.dspace.services.factory.DSpaceServicesFactory" %>
 <%@ page import="javax.servlet.jsp.jstl.fmt.LocaleSupport" %>
-<%@ page import="java.net.URLEncoder" %>
-
 
 <%
     // Retrieve attributes
@@ -67,34 +67,40 @@
 	// get the browse indices
     BrowseIndex[] bis = BrowseIndex.getBrowseIndices();
 
+    CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
     // Put the metadata values into guaranteed non-null variables
-    String name = collection.getMetadata("name");
-    String intro = collection.getMetadata("introductory_text");
+    String name = collectionService.getMetadata(collection, "name");
+    String intro = collectionService.getMetadata(collection, "introductory_text");
     if (intro == null)
     {
         intro = "";
     }
-    String copyright = collection.getMetadata("copyright_text");
+    String copyright = collectionService.getMetadata(collection, "copyright_text");
     if (copyright == null)
     {
         copyright = "";
     }
-    String sidebar = collection.getMetadata("side_bar_text");
+    String sidebar = collectionService.getMetadata(collection, "side_bar_text");
     if(sidebar == null)
     {
         sidebar = "";
     }
 
-    String communityName = community.getMetadata("name");
+    String communityName = collectionService.getMetadata(collection, "name");
     String communityLink = "/handle/" + community.getHandle();
 
     Bitstream logo = collection.getLogo();
     
-    boolean feedEnabled = ConfigurationManager.getBooleanProperty("webui.feed.enable");
+    ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
+    
+    boolean feedEnabled = configurationService.getBooleanProperty("webui.feed.enable");
     String feedData = "NONE";
     if (feedEnabled)
     {
-        feedData = "coll:" + ConfigurationManager.getProperty("webui.feed.formats");
+        // FeedData is expected to be a comma separated list
+        String[] formats = configurationService.getArrayProperty("webui.feed.formats");
+        String allFormats = StringUtils.join(formats, ",");
+        feedData = "coll:" + allFormats;
     }
     
     ItemCounter ic = new ItemCounter(UIUtil.obtainContext(request));
@@ -104,11 +110,14 @@
 %>
 
 <%@page import="org.dspace.app.webui.servlet.MyDSpaceServlet"%>
+<%@ page import="org.dspace.content.factory.ContentServiceFactory" %>
+<%@ page import="org.dspace.content.service.CollectionService" %>
+<%@ page import="org.dspace.content.service.ItemService" %>
 <dspace:layout locbar="commLink" title="<%= name %>" feedData="<%= feedData %>">
     <div class="well">
     <div class="row"><div class="col-md-8"><h2><%= name %>
 <%
-            if(ConfigurationManager.getBooleanProperty("webui.strengths.show"))
+            if(configurationService.getBooleanProperty("webui.strengths.show"))
             {
 %>
                 : [<%= ic.getCount(collection) %>]
@@ -195,13 +204,17 @@
     	       width = 36;
     	    }
 %>
-    <a href="<%= request.getContextPath() %>/feed/<%= fmts[j] %>/<%= collection.getHandle() %>"><img src="<%= request.getContextPath() %>/image/<%= icon %>" alt="RSS Feed" width="<%= width %>" height="15" vspace="3" border="0" /></a>
+    <a href="<%= request.getContextPath() %>/feed/<%= fmts[j] %>/<%= collection.getHandle() %>"><img src="<%= request.getContextPath() %>/image/<%= icon %>" alt="RSS Feed" width="<%= width %>" height="15" style="margin: 3px 0 3px" /></a>
 <%
     	} %>
     	</span><%
     }
 %>
         </form>
+
+<div class="row">
+	<%@ include file="discovery/static-tagcloud-facet.jsp" %>
+</div>
 
 <% if (show_items)
    {
@@ -230,7 +243,7 @@
     <%-- give us the top report on what we are looking at --%>
     <fmt:message var="bi_name" key="<%= bi_name_key %>"/>
     <fmt:message var="so_name" key="<%= so_name_key %>"/>
-    <div align="center" class="browse_range">
+    <div class="browse_range">
         <fmt:message key="jsp.collection-home.content.range">
             <fmt:param value="${bi_name}"/>
             <fmt:param value="${so_name}"/>
@@ -241,7 +254,7 @@
     </div>
 
     <%--  do the top previous and next page links --%>
-    <div align="center">
+    <div class="prev-next-links">
 <% 
       if (bi.hasPrevPage())
       {
@@ -276,7 +289,7 @@
 %>
 
     <%-- give us the bottom report on what we are looking at --%>
-    <div align="center" class="browse_range">
+    <div class="browse_range">
         <fmt:message key="jsp.collection-home.content.range">
             <fmt:param value="${bi_name}"/>
             <fmt:param value="${so_name}"/>
@@ -287,7 +300,7 @@
     </div>
 
     <%--  do the bottom previous and next page links --%>
-    <div align="center">
+    <div class="prev-next-links">
 <% 
       if (bi.hasPrevPage())
       {
@@ -360,24 +373,25 @@
 <%  } %>
 
 <%
-	if (rs != null)
+	if (rs != null && rs.count() > 0)
 	{
 %>
 	<h3><fmt:message key="jsp.collection-home.recentsub"/></h3>
 <%
-		Item[] items = rs.getRecentSubmissions();
-		for (int i = 0; i < items.length; i++)
+    ItemService itemService = ContentServiceFactory.getInstance().getItemService();
+    List<Item> items = rs.getRecentSubmissions();
+		for (int i = 0; i < items.size(); i++)
 		{
-			DCValue[] dcv = items[i].getMetadata("dc", "title", null, Item.ANY);
+			List<MetadataValue> dcv = itemService.getMetadata(items.get(i), "dc", "title", null, Item.ANY);
 			String displayTitle = "Untitled";
 			if (dcv != null)
 			{
-				if (dcv.length > 0)
+				if (dcv.size() > 0)
 				{
-					displayTitle = dcv[0].value;
+					displayTitle = Utils.addEntities(dcv.get(0).getValue());
 				}
 			}
-			%><p class="recentItem"><a href="<%= request.getContextPath() %>/handle/<%= items[i].getHandle() %>"><%= displayTitle %></a></p><%
+			%><p class="recentItem"><a href="<%= request.getContextPath() %>/handle/<%= items.get(i).getHandle() %>"><%= displayTitle %></a></p><%
 		}
 %>
     <p>&nbsp;</p>

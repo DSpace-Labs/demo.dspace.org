@@ -13,8 +13,8 @@ import org.dspace.content.DSpaceObject;
 import org.dspace.content.packager.PackageDisseminator;
 import org.dspace.content.packager.PackageParameters;
 import org.dspace.core.Context;
-import org.dspace.core.PluginManager;
-import org.dspace.handle.HandleManager;
+import org.dspace.handle.factory.HandleServiceFactory;
+import org.dspace.handle.service.HandleService;
 import org.dspace.sword.client.exceptions.HttpException;
 import org.dspace.sword.client.exceptions.InvalidHandleException;
 import org.dspace.sword.client.exceptions.PackageFormatException;
@@ -32,6 +32,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.SQLException;
 import java.util.UUID;
+import org.dspace.core.factory.CoreServiceFactory;
 
 /**
  * User: Robin Taylor
@@ -53,6 +54,7 @@ public class DSpaceSwordClient
     private PackageParameters pkgParams;
 
     private static Logger log = Logger.getLogger(DSpaceSwordClient.class);
+    protected HandleService handleService = HandleServiceFactory.getInstance().getHandleService();
 
 
     public DSpaceSwordClient()
@@ -165,7 +167,7 @@ public class DSpaceSwordClient
     {
         // Note - in the future we may need to allow for more than zipped up packages.
 
-        PackageDisseminator dip = (PackageDisseminator) PluginManager
+        PackageDisseminator dip = (PackageDisseminator) CoreServiceFactory.getInstance().getPluginService()
                 .getNamedPlugin(PackageDisseminator.class, packageFormat);
 
         if (dip == null)
@@ -177,7 +179,7 @@ public class DSpaceSwordClient
         DSpaceObject dso = null;
         try
         {
-            dso = HandleManager.resolveToObject(context, handle);
+            dso = handleService.resolveToObject(context, handle);
         }
         catch (SQLException e)
         {

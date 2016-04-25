@@ -15,10 +15,13 @@ import org.dspace.app.xmlui.wing.WingException;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
-import org.dspace.core.ConfigurationManager;
+import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.service.CommunityService;
+import org.dspace.services.factory.DSpaceServicesFactory;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
-import org.dspace.handle.HandleManager;
+import org.dspace.handle.factory.HandleServiceFactory;
+import org.dspace.handle.service.HandleService;
 import org.xml.sax.SAXException;
 
 /**
@@ -46,7 +49,11 @@ public class RepositoryAdapter extends AbstractAdapter
     
     /** Dspace context to be able to look up additional objects */
     private Context context;
-    
+
+
+    protected CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
+    protected HandleService handleService = HandleServiceFactory.getInstance().getHandleService();
+
     /**
      * Construct a new RepositoryAdapter
      * 
@@ -77,7 +84,7 @@ public class RepositoryAdapter extends AbstractAdapter
      */
     protected String getMETSID()
     {
-        return HandleManager.getPrefix();
+        return handleService.getPrefix();
     }
     
 	/**
@@ -180,7 +187,7 @@ public class RepositoryAdapter extends AbstractAdapter
 		attributes.put("mdschema","dspace");
 		attributes.put("element", "name");
 		startElement(DIM,"field",attributes);
-		sendCharacters(ConfigurationManager.getProperty("dspace.name"));
+		sendCharacters(DSpaceServicesFactory.getInstance().getConfigurationService().getProperty("dspace.name"));
 		endElement(DIM,"field");
 		
 		// Entry for dspace.hostname
@@ -188,7 +195,7 @@ public class RepositoryAdapter extends AbstractAdapter
 		attributes.put("mdschema","dspace");
 		attributes.put("element", "hostname");
 		startElement(DIM,"field",attributes);
-		sendCharacters(ConfigurationManager.getProperty("dspace.hostname"));
+		sendCharacters(DSpaceServicesFactory.getInstance().getConfigurationService().getProperty("dspace.hostname"));
 		endElement(DIM,"field");
 		
 		// Entry for handle.prefix
@@ -196,7 +203,7 @@ public class RepositoryAdapter extends AbstractAdapter
 		attributes.put("mdschema","dspace");
 		attributes.put("element", "handle");
 		startElement(DIM,"field",attributes);
-		sendCharacters(HandleManager.getPrefix());
+		sendCharacters(handleService.getPrefix());
 		endElement(DIM,"field");
 		
 		// Entry for default.language
@@ -205,7 +212,7 @@ public class RepositoryAdapter extends AbstractAdapter
 		attributes.put("element", "default");
 		attributes.put("qualifier", "language");
 		startElement(DIM,"field",attributes);
-		sendCharacters(ConfigurationManager.getProperty("default.language"));
+		sendCharacters(DSpaceServicesFactory.getInstance().getConfigurationService().getProperty("default.language"));
 		endElement(DIM,"field");
 		
         // ///////////////////////////////
@@ -249,7 +256,7 @@ public class RepositoryAdapter extends AbstractAdapter
         startElement(METS,"div",attributes);
 
         // Put each root level node into the document.
-        for (Community community : Community.findAllTop(context))
+        for (Community community : communityService.findAllTop(context))
         {
             renderStructuralDiv(community);
         }

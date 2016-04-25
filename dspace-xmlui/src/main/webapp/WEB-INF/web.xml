@@ -33,17 +33,10 @@
         <description>An override of the session cookie path</description>
         </context-param-->
 
-
-    <!-- DSpace Configuration Information -->
-    <context-param>
-        <param-name>dspace-config</param-name>
-        <param-value>${dspace.dir}/config/dspace.cfg</param-value>
-    </context-param>
-
-  <!-- new ConfigurationService initialization for dspace.dir -->
+  <!-- ConfigurationService initialization for dspace.dir -->
   <context-param>
     <description>
-      The location of the main DSpace configuration file
+      The location of the DSpace home directory
     </description>
     <param-name>dspace.dir</param-name>
     <param-value>${dspace.dir}</param-value>
@@ -110,6 +103,15 @@
     </init-param>
   </filter>
 
+  <!--
+       Declare a filter to do content negotiation in combination for our
+       Linked Data support.
+    -->
+  <filter>
+      <filter-name>rdf-content-negotiation</filter-name>
+      <filter-class>org.dspace.rdf.negotiation.NegotiationFilter</filter-class>
+  </filter>
+
 
   <!-- Filter mappings ================================================ -->
 
@@ -136,6 +138,11 @@
     <filter-name>SetCharacterEncoding</filter-name>
     <servlet-name>spring</servlet-name>
   </filter-mapping>
+
+  <filter-mapping>
+      <filter-name>rdf-content-negotiation</filter-name>
+      <url-pattern>/handle/*</url-pattern>
+  </filter-mapping>
   
   <!--
     - Use the Cocoon debug filter together with the Cocoon demo webapp
@@ -146,19 +153,24 @@
     -->
 
   <!-- Servlet Context Listener ======================================= -->
-  
+    <!-- Listener to initialize / clean up the application -->
+    <listener>
+        <listener-class>org.dspace.app.util.DSpaceContextListener</listener-class>
+    </listener>
+
     <!-- kernel start listener (from impl), starts up the kernel for standalong webapps -->
   <listener>
      <listener-class>org.dspace.servicemanager.servlet.DSpaceKernelServletContextListener</listener-class>
   </listener>
+
+    <listener>
+        <listener-class>org.dspace.app.util.DSpaceWebappListener</listener-class>
+    </listener>
+
   
     <!-- Listener to clean up Commons-FileUpload -->
     <listener>
       <listener-class>org.apache.commons.fileupload.servlet.FileCleanerCleanup</listener-class>
-    </listener>
-    <!-- Listener to initialize / clean up the application -->
-    <listener>
-        <listener-class>org.dspace.app.util.DSpaceContextListener</listener-class>
     </listener>
 
     <!--

@@ -32,13 +32,17 @@ import org.dspace.discovery.configuration.DiscoveryConfigurationParameters;
 import org.dspace.discovery.configuration.DiscoverySearchFilterFacet;
 import org.dspace.discovery.configuration.DiscoverySortConfiguration;
 import org.dspace.discovery.configuration.DiscoverySortFieldConfiguration;
-import org.dspace.handle.HandleManager;
+import org.dspace.handle.factory.HandleServiceFactory;
+import org.dspace.handle.service.HandleService;
 
 public class DiscoverUtility
 {
     /** log4j category */
     private static Logger log = Logger.getLogger(DiscoverUtility.class);
-
+    
+    public static final int TYPE_FACETS = 1;
+    public static final int TYPE_TAGCLOUD = 2;
+    
     /**
      * Get the scope of the search using the parameter found in the request.
      * 
@@ -65,7 +69,8 @@ public class DiscoverUtility
             }
             return null;
         }
-        DSpaceObject scope = HandleManager.resolveToObject(context, location);
+        HandleService handleService = HandleServiceFactory.getInstance().getHandleService();
+        DSpaceObject scope = handleService.resolveToObject(context, location);
         return scope;
     }
 
@@ -93,12 +98,44 @@ public class DiscoverUtility
                         request, "submit")))
         {
             setFacet(context, request, scope, queryArgs,
-                    discoveryConfiguration, userFilters);
+                    discoveryConfiguration, userFilters, discoveryConfiguration
+                    .getSidebarFacets(), TYPE_FACETS);
         }
 
         return queryArgs;
     }
 
+    /**
+     * Build a DiscoverQuery object using the tag cloud parameter in the request
+     * 
+     * @param request
+     * @return the query.
+     * @throws SearchServiceException
+     */
+    public static DiscoverQuery getTagCloudDiscoverQuery(Context context,
+            HttpServletRequest request, DSpaceObject scope, boolean enableFacet)
+    {
+        DiscoverQuery queryArgs = new DiscoverQuery();
+        DiscoveryConfiguration discoveryConfiguration = SearchUtils
+                .getDiscoveryConfiguration(scope);
+
+        List<String> userFilters = setupBasicQuery(context,
+                discoveryConfiguration, request, queryArgs);
+
+        setPagination(request, queryArgs, discoveryConfiguration);
+
+        if (enableFacet
+                && !"submit_export_metadata".equals(UIUtil.getSubmitButton(
+                        request, "submit")))
+        {
+            setFacet(context, request, scope, queryArgs,
+                    discoveryConfiguration, userFilters, discoveryConfiguration
+                    .getTagCloudFacetConfiguration().getTagCloudFacets(), TYPE_TAGCLOUD);
+        }
+
+        return queryArgs;
+    }
+    
     /**
      * Build the DiscoverQuery object for an autocomplete search using
      * parameters in the request
@@ -190,6 +227,8 @@ public class DiscoverUtility
         String query = request.getParameter("query");
         if (StringUtils.isNotBlank(query))
         {
+            // Escape any special characters in this user-entered query
+            query = escapeQueryChars(query);
             queryArgs.setQuery(query);
         }
 
@@ -199,7 +238,7 @@ public class DiscoverUtility
         {
             for (String f : defaultFilterQueries)
             {
-                queryArgs.addFacetQuery(f);
+                queryArgs.addFilterQueries(f);
             }
         }
         List<String[]> filters = getFilters(request);
@@ -230,6 +269,19 @@ public class DiscoverUtility
 
         return userFilters;
 
+    }
+
+    /**
+     * Escape colon-space sequence in a user-entered query, based on the
+     * underlying search service. This is intended to let end users paste in a
+     * title containing colon-space without requiring them to escape the colon.
+     *
+     * @param query user-entered query string
+     * @return query with colon in colon-space sequence escaped
+     */
+    private static String escapeQueryChars(String query)
+    {
+        return StringUtils.replace(query, ": ", "\\: ");
     }
 
     private static void setPagination(HttpServletRequest request,
@@ -337,11 +389,9 @@ public class DiscoverUtility
     private static void setFacet(Context context, HttpServletRequest request,
             DSpaceObject scope, DiscoverQuery queryArgs,
             DiscoveryConfiguration discoveryConfiguration,
-            List<String> userFilters)
+            List<String> userFilters, List<DiscoverySearchFilterFacet> facets, int type)
     {
-        List<DiscoverySearchFilterFacet> facets = discoveryConfiguration
-                .getSidebarFacets();
-
+  
         log.info("facets for scope, " + scope + ": "
                 + (facets != null ? facets.size() : null));
         if (facets != null)
@@ -533,7 +583,7 @@ public class DiscoverUtility
                             // filterquery
                             queryArgs.addFacetField(new DiscoverFacetField(
                                     facet.getIndexFieldName(), facet.getType(),
-                                    10, facet.getSortOrder()));
+                                    10, facet.getSortOrderSidebar()));
                         }
                         else
                         {
@@ -591,7 +641,7 @@ public class DiscoverUtility
                 }
                 else
                 {
-                    int facetLimit = facet.getFacetLimit();
+                    int facetLimit = type==TYPE_FACETS?facet.getFacetLimit():-1;
 
                     int facetPage = UIUtil.getIntParameter(request,
                             facet.getIndexFieldName() + "_page");
@@ -610,11 +660,18 @@ public class DiscoverUtility
                     // add the already selected facet so to have a full
                     // top list
                     // if possible
+                    int limit = 0;
+                    if (type==TYPE_FACETS){
+                    	limit = facetLimit + 1 + alreadySelected;
+                    }
+                    else 
+                    	limit = facetLimit;
+                    
                     queryArgs.addFacetField(new DiscoverFacetField(facet
                             .getIndexFieldName(),
                             DiscoveryConfigurationParameters.TYPE_TEXT,
-                            facetLimit + 1 + alreadySelected, facet
-                                    .getSortOrder(), facetPage * facetLimit));
+                           limit, facet
+                                    .getSortOrderSidebar(), facetPage * facetLimit));
                 }
             }
         }

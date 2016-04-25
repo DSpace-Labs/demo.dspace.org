@@ -30,7 +30,7 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 /**
  * This is the Spring implementation of the service manager.
- * 
+ *
  * @author Aaron Zeckoski (azeckoski @ gmail.com)
  */
 public final class SpringServiceManager implements ServiceManagerSystem {
@@ -38,7 +38,7 @@ public final class SpringServiceManager implements ServiceManagerSystem {
     private static Logger log = LoggerFactory.getLogger(SpringServiceManager.class);
 
     private ClassPathXmlApplicationContext applicationContext;
-    
+
     /**
      * @return the parent core Spring {@link ApplicationContext}
      */
@@ -89,7 +89,7 @@ public final class SpringServiceManager implements ServiceManagerSystem {
     public <T> T getServiceByName(String name, Class<T> type) {
         T bean = null;
         // handle special case to return the core AC
-        if (ApplicationContext.class.getName().equals(name) 
+        if (ApplicationContext.class.getName().equals(name)
                 && ApplicationContext.class.isAssignableFrom(type)) {
             bean = (T) getApplicationContext();
         } else {
@@ -99,6 +99,7 @@ public final class SpringServiceManager implements ServiceManagerSystem {
                     bean = (T) applicationContext.getBean(name, type);
                 } catch (BeansException e) {
                     // no luck, try the fall back option
+                    log.info("Unable to locate bean by name or id=" + name + ". Will try to look up bean by type next.");
                     bean = null;
                 }
             } else {
@@ -107,11 +108,12 @@ public final class SpringServiceManager implements ServiceManagerSystem {
                     bean = (T) applicationContext.getBean(type.getName(), type);
                 } catch (BeansException e) {
                     // no luck, try the fall back option
+                    log.info("Unable to locate bean by name or id=" + type.getName() + ". Will try to look up bean by type next.");
                     bean = null;
                 }
             }
             // if still no luck then try by type only
-            if (name == null 
+            if (name == null
                     && bean == null) {
                 try {
                     Map<String, T> map = applicationContext.getBeansOfType(type);
@@ -119,8 +121,13 @@ public final class SpringServiceManager implements ServiceManagerSystem {
                         // only return the bean if there is exactly one
                         bean = (T) map.values().iterator().next();
                     }
+                    else
+                    {
+                        log.error("Multiple beans of type " + type.getName() + " found. Only one was expected!");
+                    }
                 } catch (BeansException e) {
                     // I guess there are no beans of this type
+                    log.error(e.getMessage(), e);
                     bean = null;
                 }
             }
@@ -179,7 +186,7 @@ public final class SpringServiceManager implements ServiceManagerSystem {
             log.warn("TEST Spring Service Manager running in test mode, no dspace home spring files will be loaded");
         } else {
             //Retrieve all our spring file locations depending on the deployed module
-            String[] springLoaderClassNames = configurationService.getPropertyAsType("spring.springloader.modules", new String[0]);
+            String[] springLoaderClassNames = configurationService.getArrayProperty("spring.springloader.modules");
             if(springLoaderClassNames != null){
                 for(String springLoaderClassName : springLoaderClassNames){
                     try {
@@ -200,7 +207,7 @@ public final class SpringServiceManager implements ServiceManagerSystem {
         applicationContext = new ClassPathXmlApplicationContext(allPaths, false);
         // Make sure that the spring files from the config directoy can override the spring files from our jars
         applicationContext.setAllowBeanDefinitionOverriding(true);
-        applicationContext.setAllowCircularReferences(false);
+        applicationContext.setAllowCircularReferences(true);
         //applicationContext.registerShutdownHook(); // this interferes with the kernel shutdown hook
         // add the config interceptors (partially done in the xml)
         applicationContext.addBeanFactoryPostProcessor( new DSpaceBeanFactoryPostProcessor(parent, configurationService, testMode) );
@@ -239,6 +246,13 @@ public final class SpringServiceManager implements ServiceManagerSystem {
             applicationContext.getBeanFactory().autowireBean(service);
         } catch (BeansException e) {
             throw new IllegalArgumentException("Invalid service ("+service+") with name ("+name+") registration: " + e.getMessage(), e);
+        }
+        registerBean(name, service);
+    }
+
+    public void registerServiceNoAutowire(String name, Object service) {
+        if (name == null || service == null) {
+            throw new IllegalArgumentException("name and service must not be null for service registration");
         }
         registerBean(name, service);
     }
@@ -309,7 +323,7 @@ public final class SpringServiceManager implements ServiceManagerSystem {
         return services;
     }
 
-    public void pushConfig(Map<String, String> settings) {
+    public void pushConfig(Map<String, Object> settings) {
         throw new UnsupportedOperationException("Not implemented for individual service manager systems");
     }
 

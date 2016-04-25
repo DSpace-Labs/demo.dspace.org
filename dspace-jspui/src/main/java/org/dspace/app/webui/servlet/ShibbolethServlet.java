@@ -9,22 +9,23 @@ package org.dspace.app.webui.servlet;
 
 import java.io.IOException;
 import java.sql.SQLException;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
-
 import org.dspace.app.webui.util.Authenticate;
 import org.dspace.app.webui.util.JSPManager;
+import org.dspace.authenticate.AuthenticationMethod;
+import org.dspace.authenticate.factory.AuthenticateServiceFactory;
+import org.dspace.authenticate.service.AuthenticationService;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.core.Context;
 import org.dspace.core.LogManager;
-import org.dspace.authenticate.AuthenticationManager;
-import org.dspace.authenticate.AuthenticationMethod;
 
 /**
- * Shibbolize dspace. Follow instruction at 
+ * Shibbolize DSpace. Follow instruction at
  * http://mams.melcoe.mq.edu.au/zope/mams/pubs/Installation/dspace15
  *
  * Pull information from the header as released by Shibboleth target.
@@ -43,8 +44,12 @@ import org.dspace.authenticate.AuthenticationMethod;
  */
 public class ShibbolethServlet extends DSpaceServlet {
     /** log4j logger */
-    private static Logger log = Logger.getLogger(ShibbolethServlet.class);
+    private static final Logger log = Logger.getLogger(ShibbolethServlet.class);
     
+    private final transient AuthenticationService authenticationService
+             = AuthenticateServiceFactory.getInstance().getAuthenticationService();
+    
+    @Override
     protected void doDSGet(Context context,
             HttpServletRequest request,
             HttpServletResponse response)
@@ -61,7 +66,7 @@ public class ShibbolethServlet extends DSpaceServlet {
         String jsp = null;
         
         // Locate the eperson
-        int status = AuthenticationManager.authenticate(context, null, null, null, request);
+        int status = authenticationService.authenticate(context, null, null, null, request);
         
         if (status == AuthenticationMethod.SUCCESS){
             // Logged in OK.

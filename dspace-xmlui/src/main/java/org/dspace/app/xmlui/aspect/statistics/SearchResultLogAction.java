@@ -13,18 +13,17 @@ import org.apache.cocoon.environment.ObjectModelHelper;
 import org.apache.cocoon.environment.Redirector;
 import org.apache.cocoon.environment.Request;
 import org.apache.cocoon.environment.SourceResolver;
-import org.apache.cocoon.environment.http.HttpEnvironment;
 import org.apache.commons.lang.StringUtils;
 import org.dspace.app.xmlui.utils.ContextUtil;
 import org.dspace.app.xmlui.utils.HandleUtil;
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.Context;
-import org.dspace.handle.HandleManager;
+import org.dspace.handle.factory.HandleServiceFactory;
+import org.dspace.handle.service.HandleService;
+import org.dspace.services.factory.DSpaceServicesFactory;
 import org.dspace.usage.UsageEvent;
 import org.dspace.usage.UsageSearchEvent;
-import org.dspace.utils.DSpace;
 
-import javax.servlet.http.HttpServletResponse;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,6 +37,8 @@ import java.util.Map;
  */
 public class SearchResultLogAction extends AbstractAction {
 
+    protected HandleService handleService = HandleServiceFactory.getInstance().getHandleService();
+
     @Override
     public Map act(Redirector redirector, SourceResolver resolver, Map objectModel, String source, Parameters parameters) throws Exception {
         Request request = ObjectModelHelper.getRequest(objectModel);
@@ -47,7 +48,7 @@ public class SearchResultLogAction extends AbstractAction {
         DSpaceObject scope = null;
         if(StringUtils.isNotBlank(request.getParameter("current-scope")))
         {
-            scope = HandleManager.resolveToObject(context, request.getParameter("current-scope"));
+            scope = handleService.resolveToObject(context, request.getParameter("current-scope"));
         }
 
         //Fire an event to log our search result
@@ -71,7 +72,7 @@ public class SearchResultLogAction extends AbstractAction {
             searchEvent.setPage(Integer.parseInt(request.getParameter("page")));
         }
 
-        new DSpace().getEventService().fireEvent(
+        DSpaceServicesFactory.getInstance().getEventService().fireEvent(
                 searchEvent);
 
         return new HashMap();

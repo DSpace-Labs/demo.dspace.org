@@ -10,6 +10,7 @@ package org.dspace.event;
 import java.io.PrintStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import org.apache.commons.lang3.ArrayUtils;
 
 import org.apache.log4j.Logger;
 import org.dspace.core.ConfigurationManager;
@@ -33,6 +34,7 @@ public class TestConsumer implements Consumer
     private static PrintStream out = ConfigurationManager
             .getBooleanProperty("testConsumer.verbose") ? System.out : null;
 
+    @Override
     public void initialize() throws Exception
     {
         log.info("EVENT: called TestConsumer.initialize();");
@@ -50,6 +52,7 @@ public class TestConsumer implements Consumer
      * @param event
      *            Content event
      */
+    @Override
     public void consume(Context ctx, Event event) throws Exception
     {
         EPerson ep = ctx.getCurrentUser();
@@ -66,6 +69,8 @@ public class TestConsumer implements Consumer
                 + event.getObjectTypeAsString()
                 + ", ObjectID="
                 + String.valueOf(event.getObjectID())
+                + ", Identifiers="
+                + ArrayUtils.toString(event.getIdentifiers())
                 + ", TimeStamp="
                 + applyDateFormat(new Date(event.getTimeStamp()))
                 + ", user=\""
@@ -89,6 +94,7 @@ public class TestConsumer implements Consumer
         }
     }
 
+    @Override
     public void end(Context ctx) throws Exception
     {
         log.info("EVENT: called TestConsumer.end();");
@@ -99,6 +105,7 @@ public class TestConsumer implements Consumer
 
     }
 
+    @Override
     public void finish(Context ctx) throws Exception
     {
         log.info("EVENT: called TestConsumer.finish();");

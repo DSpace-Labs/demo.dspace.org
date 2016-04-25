@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import org.apache.log4j.Logger;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
+import org.dspace.content.Item;
 import org.dspace.core.Context;
 import org.dspace.core.LogManager;
 import org.dspace.sort.SortOption;
@@ -32,16 +33,16 @@ import org.dspace.sort.OrderFormat;
 public class BrowseEngine
 {
     /** the logger for this class */
-    private static Logger log = Logger.getLogger(BrowseEngine.class);
+    private static final Logger log = Logger.getLogger(BrowseEngine.class);
 
     /** the browse scope which is the basis for our browse */
     private BrowserScope scope;
 
     /** the DSpace context */
-    private Context context;
+    private final Context context;
 
     /** The Data Access Object for the browse tables */
-    private BrowseDAO dao;
+    private final BrowseDAO dao;
 
     /** The Browse Index associated with the Browse Scope */
     private BrowseIndex browseIndex;
@@ -49,7 +50,7 @@ public class BrowseEngine
     /**
      * Create a new instance of the Browse engine, using the given DSpace
      * Context object.  This will automatically assign a Data Access Object
-     * for the Browse Engine, based on the dspace.cfg setting for db.name
+     * for the Browse Engine, based on the brand of the provided DBMS.
      *
      * @param context       the DSpace context
      * @throws BrowseException
@@ -161,7 +162,7 @@ public class BrowseEngine
         dao.setOrderField(orderBy);
 
         // now run the query
-        List<BrowseItem> results = dao.doQuery();
+        List<Item> results = dao.doQuery();
 
         // construct the mostly empty BrowseInfo object to pass back
         BrowseInfo browseInfo = new BrowseInfo(results, 0, scope.getResultsPerPage(), 0);
@@ -294,7 +295,7 @@ public class BrowseEngine
             dao.setLimit(scope.getResultsPerPage());
 
             // Holder for the results
-            List<BrowseItem> results = null;
+            List<Item> results = null;
 
             // Does this browse have any contents?
             if (total > 0)
@@ -322,7 +323,7 @@ public class BrowseEngine
             else
             {
                 // No records, so make an empty list
-                results = new ArrayList<BrowseItem>();
+                results = new ArrayList<>();
             }
 
             // construct the BrowseInfo object to pass back

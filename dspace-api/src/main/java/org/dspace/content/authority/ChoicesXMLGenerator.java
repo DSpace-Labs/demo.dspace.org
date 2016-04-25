@@ -22,8 +22,8 @@ import org.xml.sax.helpers.AttributesImpl;
 public class ChoicesXMLGenerator
 {
     // use the XHTML NS, even though this is  a fragment.
-    private static final String NS_URI = "http://www.w3.org/1999/xhtml";
-    private static final String NS_NAME = "";
+    protected static final String NS_URI = "http://www.w3.org/1999/xhtml";
+    protected static final String NS_NAME = "";
 
     public static void generate(Choices result, String format, ContentHandler contentHandler)
         throws SAXException
@@ -102,6 +102,12 @@ public class ChoicesXMLGenerator
                 AttributesImpl va = new AttributesImpl();
                 va.addAttribute("", "authority", "authority", "string", mdav.authority == null ? "":mdav.authority);
                 va.addAttribute("", "value", "value", "string", mdav.value);
+                if(mdav.extras != null){
+                    for(String extraLabel : mdav.extras.keySet()){
+                        va.addAttribute("", extraLabel, extraLabel, "string", mdav.extras.get(extraLabel));
+                    }
+                }
+
                 if (result.defaultSelected == i)
                 {
                     va.addAttribute("", "selected", "selected", "boolean", "");

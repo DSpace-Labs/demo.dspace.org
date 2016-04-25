@@ -7,7 +7,10 @@
  */
 package org.dspace.content.authority;
 
-import org.apache.commons.httpclient.NameValuePair;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.http.message.BasicNameValuePair;
+import org.dspace.content.Collection;
 
 /**
  * Sample Journal-name authority based on SHERPA/RoMEO
@@ -31,7 +34,8 @@ public class SHERPARoMEOJournalTitle extends SHERPARoMEOProtocol
         super();
     }
 
-    public Choices getMatches(String text, int collection, int start, int limit, String locale)
+    @Override
+    public Choices getMatches(String text, Collection collection, int start, int limit, String locale)
     {
         // punt if there is no query text
         if (text == null || text.trim().length() == 0)
@@ -40,9 +44,9 @@ public class SHERPARoMEOJournalTitle extends SHERPARoMEOProtocol
         }
 
         // query args to add to SHERPA/RoMEO request URL
-        NameValuePair args[] = new NameValuePair[2];
-        args[0] = new NameValuePair("jtitle", text);
-        args[1] = new NameValuePair("qtype","contains"); // OR: starts, exact
+        List<BasicNameValuePair> args = new ArrayList<BasicNameValuePair>();
+        args.add(new BasicNameValuePair("jtitle", text));
+        args.add(new BasicNameValuePair("qtype","contains")); // OR: starts, exact
 
         Choices result = query(RESULT, LABEL, AUTHORITY, args, start, limit);
         if (result == null)
@@ -53,7 +57,7 @@ public class SHERPARoMEOJournalTitle extends SHERPARoMEOProtocol
     }
 
     @Override
-    public Choices getMatches(String field, String text, int collection, int start, int limit, String locale) {
+    public Choices getMatches(String field, String text, Collection collection, int start, int limit, String locale) {
         return getMatches(text, collection, start, limit, locale);
     }
 }

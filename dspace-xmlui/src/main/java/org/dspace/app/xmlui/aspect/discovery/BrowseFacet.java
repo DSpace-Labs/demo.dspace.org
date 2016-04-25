@@ -19,7 +19,7 @@ import org.dspace.content.DSpaceObject;
 import org.dspace.content.Community;
 import org.dspace.content.Collection;
 import org.dspace.authorize.AuthorizeException;
-import org.dspace.core.ConfigurationManager;
+import org.dspace.services.factory.DSpaceServicesFactory;
 import org.dspace.core.Constants;
 import org.apache.cocoon.caching.CacheableProcessingComponent;
 import org.apache.cocoon.util.HashUtil;
@@ -30,7 +30,6 @@ import org.apache.log4j.Logger;
 import org.dspace.core.Context;
 import org.dspace.discovery.*;
 import org.dspace.services.ConfigurationService;
-import org.dspace.utils.DSpace;
 import org.xml.sax.SAXException;
 
 import java.io.Serializable;
@@ -78,9 +77,8 @@ public class BrowseFacet extends AbstractDSpaceTransformer implements CacheableP
 
     public BrowseFacet() {
 
-        DSpace dspace = new DSpace();
-        config = dspace.getConfigurationService();
-        searchService = dspace.getServiceManager().getServiceByName(SearchService.class.getName(),SearchService.class);
+        config = DSpaceServicesFactory.getInstance().getConfigurationService();
+        searchService = DSpaceServicesFactory.getInstance().getServiceManager().getServiceByName(SearchService.class.getName(),SearchService.class);
 
     }
 
@@ -123,7 +121,7 @@ public class BrowseFacet extends AbstractDSpaceTransformer implements CacheableP
 
                 if (dso != null) {
                     // Add the actual collection;
-                    validity.add(dso);
+                    validity.add(context, dso);
                 }
 
                 // add recently submitted items, serialize solr query contents.
@@ -132,7 +130,7 @@ public class BrowseFacet extends AbstractDSpaceTransformer implements CacheableP
                 validity.add("numFound:" + response.getDspaceObjects().size());
 
                 for (DSpaceObject resultDso : response.getDspaceObjects()) {
-                    validity.add(resultDso);
+                    validity.add(context, resultDso);
                 }
 
                 for (String facetField : response.getFacetResults().keySet()) {
@@ -185,7 +183,7 @@ public class BrowseFacet extends AbstractDSpaceTransformer implements CacheableP
 
 //        TODO: change this !
         queryArgs.setSortField(
-                ConfigurationManager.getProperty("recent.submissions.sort-option"),
+                DSpaceServicesFactory.getInstance().getConfigurationService().getProperty("recent.submissions.sort-option"),
                 DiscoverQuery.SORT_ORDER.asc
         );
         queryArgs.addFilterQueries(getParameterFacetQueries());
@@ -240,11 +238,6 @@ public class BrowseFacet extends AbstractDSpaceTransformer implements CacheableP
             discoverQuery.setMaxResults(1);
             discoverQuery.setSortField(dateField, DiscoverQuery.SORT_ORDER.asc);
             discoverQuery.addFilterQueries(filterquery);
-
-            DiscoverResult rsp = searchService.search(context, discoverQuery);
-//            if(0 < rsp.getResults().getNumFound()){
-//                return (Date) rsp.getResults().get(0).getFieldValue(dateField);
-//            }
         }catch (Exception e){
             log.error("Unable to get lowest date", e);
         }
@@ -265,7 +258,7 @@ public class BrowseFacet extends AbstractDSpaceTransformer implements CacheableP
 
         DSpaceObject dso = HandleUtil.obtainHandle(objectModel);
         if ((dso instanceof Collection) || (dso instanceof Community)) {
-            HandleUtil.buildHandleTrail(dso, pageMeta, contextPath);
+            HandleUtil.buildHandleTrail(context, dso, pageMeta, contextPath);
         }
 
         pageMeta.addTrail().addContent(message("xmlui.ArtifactBrowser.AbstractSearch.type_" + facetField + "_browse"));

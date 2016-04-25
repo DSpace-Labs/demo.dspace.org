@@ -9,19 +9,24 @@ package org.dspace.content;
 
 import mockit.*;
 
-import org.dspace.authorize.AuthorizeManager;
+import org.dspace.authorize.AuthorizeException;
+import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.service.*;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 
 import java.io.FileInputStream;
 import java.io.File;
+import java.io.IOException;
 import java.sql.SQLException;
+import java.util.List;
 
 import org.dspace.AbstractUnitTest;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import static org.junit.Assert.* ;
 import static org.hamcrest.CoreMatchers.*;
+import org.junit.rules.ExpectedException;
 
 
 /**
@@ -31,21 +36,41 @@ import static org.hamcrest.CoreMatchers.*;
 public class InstallItemTest extends AbstractUnitTest
 {
 
+
+    protected CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
+    protected CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
+    protected ItemService itemService = ContentServiceFactory.getInstance().getItemService();
+    protected InstallItemService installItemService = ContentServiceFactory.getInstance().getInstallItemService();
+    protected WorkspaceItemService workspaceItemService = ContentServiceFactory.getInstance().getWorkspaceItemService();
+
+    private Collection collection;
+    private Community owningCommunity;
+
     /** log4j category */
     private static final Logger log = Logger.getLogger(InstallItemTest.class);
 
-    /**
-     * This method will be run before every test as per @Before. It will
-     * initialize resources required for the tests.
-     *
-     * Other methods can be annotated with @Before here or in subclasses
-     * but no execution order is guaranteed
-     */
+    /** Used to check/verify thrown exceptions in below tests **/
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
+
+
+
     @Before
     @Override
     public void init()
     {
         super.init();
+        try {
+            context.turnOffAuthorisationSystem();
+            this.owningCommunity = communityService.create(null, context);
+            this.collection = collectionService.create(context, owningCommunity);
+            context.restoreAuthSystemState();
+        }
+        catch (SQLException | AuthorizeException ex)
+        {
+            log.error("SQL Error in init", ex);
+            fail("SQL Error in init: " + ex.getMessage());
+        }
     }
 
     /**
@@ -59,8 +84,18 @@ public class InstallItemTest extends AbstractUnitTest
     @Override
     public void destroy()
     {
+        try {
+            context.turnOffAuthorisationSystem();
+            communityService.delete(context, owningCommunity);
+            context.restoreAuthSystemState();
+        } catch (SQLException | AuthorizeException | IOException ex) {
+            log.error("SQL Error in destroy", ex);
+            fail("SQL Error in destroy: " + ex.getMessage());
+            context.abort();
+        }
         super.destroy();
     }
+
 
     /**
      * Test of installItem method, of class InstallItem.
@@ -69,10 +104,9 @@ public class InstallItemTest extends AbstractUnitTest
     public void testInstallItem_Context_InProgressSubmission() throws Exception 
     {
         context.turnOffAuthorisationSystem();
-        Collection col = Collection.create(context);
-        WorkspaceItem is = WorkspaceItem.create(context, col, false);
+        WorkspaceItem is = workspaceItemService.create(context, collection, false);
 
-        Item result = InstallItem.installItem(context, is);
+        Item result = installItemService.installItem(context, is);
         context.restoreAuthSystemState();
         assertThat("testInstallItem_Context_InProgressSubmission 0", result, equalTo(is.getItem()));
     }
@@ -84,13 +118,12 @@ public class InstallItemTest extends AbstractUnitTest
     public void testInstallItem_validHandle() throws Exception
     {
         context.turnOffAuthorisationSystem();
-        String handle = "1345/567";
-        Collection col = Collection.create(context);
-        WorkspaceItem is = WorkspaceItem.create(context, col, false);
+        String handle = "123456789/567";
+        WorkspaceItem is = workspaceItemService.create(context, collection, false);
       
         //Test assigning a specified handle to an item
         // (this handle should not already be used by system, as it doesn't start with "1234567689" prefix)
-        Item result = InstallItem.installItem(context, is, handle);
+        Item result = installItemService.installItem(context, is, handle);
         context.restoreAuthSystemState();
         assertThat("testInstallItem_validHandle", result, equalTo(is.getItem()));
         assertThat("testInstallItem_validHandle", result.getHandle(), equalTo(handle));
@@ -99,29 +132,29 @@ public class InstallItemTest extends AbstractUnitTest
     /**
      * Test of installItem method (with an invalid handle), of class InstallItem.
      */
-    @Test(expected=SQLException.class)
+    @Test
     public void testInstallItem_invalidHandle() throws Exception
     {
         //Default to Full-Admin rights
-        new NonStrictExpectations()
-        {
-            AuthorizeManager authManager;
-            {
-                AuthorizeManager.authorizeActionBoolean((Context) any, (Community) any,
-                        Constants.ADD); result = false;
-                AuthorizeManager.isAdmin((Context) any); result = true;
-            }
-        };
+        new NonStrictExpectations(authorizeService.getClass())
+        {{
+            // Deny Community ADD perms
+                authorizeService.authorizeActionBoolean((Context) any, (Community) any,
+                    Constants.ADD); result = false;
+            // Allow full Admin perms
+                authorizeService.isAdmin((Context) any); result = true;
+        }};
 
-        String handle = "1345/567";
-        Collection col = Collection.create(context);
-        WorkspaceItem is = WorkspaceItem.create(context, col, false);
-        WorkspaceItem is2 = WorkspaceItem.create(context, col, false);
+        String handle = "123456789/567";
+        WorkspaceItem is = workspaceItemService.create(context, collection, false);
+        WorkspaceItem is2 = workspaceItemService.create(context, collection, false);
         
         //Test assigning the same Handle to two different items
-        // this should throw an exception
-        Item result1 = InstallItem.installItem(context, is, handle);
-        Item result2 = InstallItem.installItem(context, is2, handle);
+        installItemService.installItem(context, is, handle);
+
+        // Assigning the same handle again should throw a RuntimeException
+        thrown.expect(RuntimeException.class);
+        installItemService.installItem(context, is2, handle);
         fail("Exception expected");
     }
 
@@ -133,9 +166,8 @@ public class InstallItemTest extends AbstractUnitTest
     public void testRestoreItem() throws Exception
     {
         context.turnOffAuthorisationSystem();
-        String handle = "1345/567";
-        Collection col = Collection.create(context);
-        WorkspaceItem is = WorkspaceItem.create(context, col, false);
+        String handle = "123456789/567";
+        WorkspaceItem is = workspaceItemService.create(context, collection, false);
 
         //get current date
         DCDate now = DCDate.getCurrent();
@@ -147,18 +179,18 @@ public class InstallItemTest extends AbstractUnitTest
         //(restoreItem should NEVER insert a provenance message with today's date)
         String provDescriptionBegins = "Made available in DSpace on " + date;
         
-        Item result = InstallItem.restoreItem(context, is, handle);
+        Item result = installItemService.restoreItem(context, is, handle);
         context.restoreAuthSystemState();
 
         //Make sure restore worked
         assertThat("testRestoreItem 0", result, equalTo(is.getItem()));
 
         //Make sure that restore did NOT insert a new provenance message with today's date
-        DCValue[] provMsgValues = result.getMetadata("dc", "description", "provenance", Item.ANY);
+        List<MetadataValue> provMsgValues = itemService.getMetadata(result, "dc", "description", "provenance", Item.ANY);
         int i = 1;
-        for(DCValue val : provMsgValues)
+        for(MetadataValue val : provMsgValues)
         {
-            assertFalse("testRestoreItem " + i, val.value.startsWith(provDescriptionBegins));
+            assertFalse("testRestoreItem " + i, val.getValue().startsWith(provDescriptionBegins));
             i++;
         }
     }
@@ -171,17 +203,15 @@ public class InstallItemTest extends AbstractUnitTest
     {
         File f = new File(testProps.get("test.bitstream").toString());
         context.turnOffAuthorisationSystem();
-        Item item = Item.create(context);
-        context.commit();
+        WorkspaceItem is = workspaceItemService.create(context, collection, false);
+        Item item = installItemService.installItem(context, is);
 
-        Bitstream one = item.createSingleBitstream(new FileInputStream(f));
-        one.setName("one");
-        context.commit();
+        Bitstream one = itemService.createSingleBitstream(context, new FileInputStream(f), item);
+        one.setName(context, "one");
 
-        Bitstream two = item.createSingleBitstream(new FileInputStream(f));
-        two.setName("two");
-        context.commit();
-        
+        Bitstream two = itemService.createSingleBitstream(context, new FileInputStream(f), item);
+        two.setName(context, "two");
+
         context.restoreAuthSystemState();
 
         // Create provenance description
@@ -195,7 +225,7 @@ public class InstallItemTest extends AbstractUnitTest
                     + two.getChecksum() + " ("
                     + two.getChecksumAlgorithm() + ")\n";
 
-        assertThat("testGetBitstreamProvenanceMessage 0", InstallItem.getBitstreamProvenanceMessage(item), equalTo(testMessage));
+        assertThat("testGetBitstreamProvenanceMessage 0", installItemService.getBitstreamProvenanceMessage(context, item), equalTo(testMessage));
     }
 
     /**
@@ -206,13 +236,12 @@ public class InstallItemTest extends AbstractUnitTest
     {
         //create a dummy WorkspaceItem
         context.turnOffAuthorisationSystem();
-        String handle = "1345/567";
-        Collection col = Collection.create(context);
-        WorkspaceItem is = WorkspaceItem.create(context, col, false);
+        String handle = "123456789/567";
+        WorkspaceItem is = workspaceItemService.create(context, collection, false);
 
         // Set "today" as "dc.date.issued"
-        is.getItem().addMetadata("dc", "date", "issued", Item.ANY, "today");
-        is.getItem().addMetadata("dc", "date", "issued", Item.ANY, "2011-01-01");
+        itemService.addMetadata(context, is.getItem(), "dc", "date", "issued", Item.ANY, "today");
+        itemService.addMetadata(context, is.getItem(), "dc", "date", "issued", Item.ANY, "2011-01-01");
 
         //get current date
         DCDate now = DCDate.getCurrent();
@@ -220,14 +249,14 @@ public class InstallItemTest extends AbstractUnitTest
         //parse out just the date, remove the time (format: yyyy-mm-ddT00:00:00Z)
         String date = dayAndTime.substring(0, dayAndTime.indexOf("T"));
 
-        Item result = InstallItem.installItem(context, is, handle);
+        Item result = installItemService.installItem(context, is, handle);
         context.restoreAuthSystemState();
 
         //Make sure the string "today" was replaced with today's date
-        DCValue[] issuedDates = result.getMetadata("dc", "date", "issued", Item.ANY);
+        List<MetadataValue> issuedDates = itemService.getMetadata(result, "dc", "date", "issued", Item.ANY);
 
-        assertThat("testInstallItem_todayAsIssuedDate 0", issuedDates[0].value, equalTo(date));
-        assertThat("testInstallItem_todayAsIssuedDate 1", issuedDates[1].value, equalTo("2011-01-01"));
+        assertThat("testInstallItem_todayAsIssuedDate 0", issuedDates.get(0).getValue(), equalTo(date));
+        assertThat("testInstallItem_todayAsIssuedDate 1", issuedDates.get(1).getValue(), equalTo("2011-01-01"));
     }
 
     /**
@@ -238,16 +267,15 @@ public class InstallItemTest extends AbstractUnitTest
     {
         //create a dummy WorkspaceItem with no dc.date.issued
         context.turnOffAuthorisationSystem();
-        String handle = "1345/567";
-        Collection col = Collection.create(context);
-        WorkspaceItem is = WorkspaceItem.create(context, col, false);
+        String handle = "123456789/567";
+        WorkspaceItem is = workspaceItemService.create(context, collection, false);
 
-        Item result = InstallItem.installItem(context, is, handle);
+        Item result = installItemService.installItem(context, is, handle);
         context.restoreAuthSystemState();
 
         //Make sure dc.date.issued is NOT set
-        DCValue[] issuedDates = result.getMetadata("dc", "date", "issued", Item.ANY);
-        assertThat("testInstallItem_nullIssuedDate 0", issuedDates.length, equalTo(0));
+        List<MetadataValue> issuedDates = itemService.getMetadata(result, "dc", "date", "issued", Item.ANY);
+        assertThat("testInstallItem_nullIssuedDate 0", issuedDates.size(), equalTo(0));
     }
 
     /**
@@ -258,13 +286,12 @@ public class InstallItemTest extends AbstractUnitTest
     {
         //create a dummy WorkspaceItem
         context.turnOffAuthorisationSystem();
-        String handle = "1345/567";
-        Collection col = Collection.create(context);
-        WorkspaceItem is = WorkspaceItem.create(context, col, false);
+        String handle = "123456789/567";
+        WorkspaceItem is = workspaceItemService.create(context, collection, false);
 
         // Set "today" as "dc.date.issued"
-        is.getItem().addMetadata("dc", "date", "issued", Item.ANY, "today");
-        is.getItem().addMetadata("dc", "date", "issued", Item.ANY, "2011-01-01");
+        itemService.addMetadata(context, is.getItem(), "dc", "date", "issued", Item.ANY, "today");
+        itemService.addMetadata(context, is.getItem(), "dc", "date", "issued", Item.ANY, "2011-01-01");
 
         //get current date
         DCDate now = DCDate.getCurrent();
@@ -272,13 +299,13 @@ public class InstallItemTest extends AbstractUnitTest
         //parse out just the date, remove the time (format: yyyy-mm-ddT00:00:00Z)
         String date = dayAndTime.substring(0, dayAndTime.indexOf("T"));
 
-        Item result = InstallItem.restoreItem(context, is, handle);
+        Item result = installItemService.restoreItem(context, is, handle);
         context.restoreAuthSystemState();
 
         //Make sure the string "today" was replaced with today's date
-        DCValue[] issuedDates = result.getMetadata("dc", "date", "issued", Item.ANY);
+        List<MetadataValue> issuedDates = itemService.getMetadata(result, "dc", "date", "issued", Item.ANY);
 
-        assertThat("testRestoreItem_todayAsIssuedDate 0", issuedDates[0].value, equalTo(date));
-        assertThat("testRestoreItem_todayAsIssuedDate 1", issuedDates[1].value, equalTo("2011-01-01"));
+        assertThat("testRestoreItem_todayAsIssuedDate 0", issuedDates.get(0).getValue(), equalTo(date));
+        assertThat("testRestoreItem_todayAsIssuedDate 1", issuedDates.get(1).getValue(), equalTo("2011-01-01"));
     }
 }

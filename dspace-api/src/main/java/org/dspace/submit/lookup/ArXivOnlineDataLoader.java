@@ -15,8 +15,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.http.HttpException;
 
-import org.apache.commons.httpclient.HttpException;
 import org.dspace.core.Context;
 
 /**
@@ -27,9 +27,9 @@ import org.dspace.core.Context;
  */
 public class ArXivOnlineDataLoader extends NetworkSubmissionLookupDataLoader
 {
-    private ArXivService arXivService = new ArXivService();
+    protected ArXivService arXivService = new ArXivService();
 
-    private boolean searchProvider = true;
+    protected boolean searchProvider = true;
 
     public void setArXivService(ArXivService arXivService)
     {

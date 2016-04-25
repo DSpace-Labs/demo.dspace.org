@@ -38,11 +38,11 @@
 	request.setAttribute("LanguageSwitch", "hide");
 
     //get collections to choose from
-    Collection[] collections =
-        (Collection[]) request.getAttribute("collections");
+    List<Collection> collections =
+        (List<Collection>) request.getAttribute("collections");
 
-    //get community handle
-    int communityId = (Integer) request.getAttribute("collectionID");
+    //get collection id from the collection home
+    String collection_id = (String) request.getAttribute("collection_id");
     
     //check if we need to display the "no collection selected" error
     Boolean noCollection = (Boolean) request.getAttribute("no.collection");
@@ -83,7 +83,7 @@
     <div id="jsseedetailsbuttonmessage" style="display: none"><fmt:message key="jsp.submit.start-lookup-submission.js.detailsbuttonmessage"/></div>
     <div id="jsfilldatabuttonmessage" style="display: none"><fmt:message key="jsp.submit.start-lookup-submission.js.filldataandstartbuttonmessage"/></div>
     
-<%  if (collections.length > 0)
+<%  if (collections.size() > 0)
     {
 		//if no collection was selected, display an error
 		if((noCollection != null) && (noCollection.booleanValue()==true))
@@ -235,7 +235,7 @@
 	<% 
 		}
 	%>
-	</select> 	
+	</select> 
 	</div>
 	</div>
 	<div class="form-group">
@@ -252,14 +252,10 @@
 	<div class="form-group" id="select-collection-file-div">
 				<label class="col-md-3" for="select-collection-file"><fmt:message key="jsp.submit.start-lookup-submission.byfile.filecollection"/>:</label>
 				<div class="col-md-6">
-				<select class="form-control submission-file-loader" name="select-collection-file" id="select-collection-file">
-					<% for (Collection c : collections) { %>
-					<option value="<%= c.getID() %>"><%= c.getName() %></option>
-					<% }  %>
-				</select>
+                                  <dspace:selectcollection klass="form-control submission-file-loader" name="select-collection-file" id="select-collection-file" collection="<%= collection_id %>"/>
 				</div>
+				<button class="btn btn-primary col-md-2 pull-right" type="button" id="loadfile_go"><fmt:message key="jsp.submit.start-lookup-submission.byfile.process"/></button>
 	</div>
-	<button class="btn btn-primary col-md-2 pull-right" type="button" id="loadfile_go"><fmt:message key="jsp.submit.start-lookup-submission.byfile.process"/></button>
 		</form>
 	</div>
 <% 
@@ -281,12 +277,7 @@
 			<label for="select-collection-manual"><fmt:message key="jsp.submit.start-lookup-submission.select.collection.label"/></label>
 			</div>
 			<div class="col-md-7">
-			<select class="form-control" id="select-collection-manual">
-				<option value="-1"><fmt:message key="jsp.submit.start-lookup-submission.select.collection.defaultoption"/></option>
-				<% for (Collection c : collections) { %>
-				<option value="<%= c.getID() %>"><%= c.getName() %></option>
-				<% }  %>
-			</select>
+                          <dspace:selectcollection klass="form-control" id="select-collection-manual" collection="<%= collection_id %>"/>
 			</div>
 			</div>
 			<form class="form-horizontal" id="form-submission" action="" method="post">
@@ -307,11 +298,7 @@
 </div>
 		<div id="hidden-area" style="display: none;">
 			<div id="select-collection-div">
-				<select class="form-control" id="select-collection">
-					<% for (Collection c : collections) { %>
-					<option value="<%= c.getID() %>"><%= c.getName() %></option>
-					<% }  %>
-				</select>
+                          <dspace:selectcollection klass="form-control" id="select-collection" collection="<%= collection_id %>"/>
 			</div>
 		</div>
 		

@@ -13,6 +13,8 @@ import java.util.List;
 import java.io.File;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.dspace.content.Collection;
+import org.dspace.services.factory.DSpaceServicesFactory;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import javax.xml.xpath.XPath;
@@ -24,8 +26,8 @@ import org.xml.sax.InputSource;
 
 import org.apache.log4j.Logger;
 
-import org.dspace.core.ConfigurationManager;
 import org.dspace.core.SelfNamedPlugin;
+import org.dspace.services.ConfigurationService;
 
 /**
  * ChoiceAuthority source that reads the JSPUI-style hierarchical vocabularies
@@ -56,15 +58,15 @@ public class DSpaceControlledVocabulary extends SelfNamedPlugin implements Choic
 {
 
     private static Logger log = Logger.getLogger(DSpaceControlledVocabulary.class);
-    private static String xpathTemplate = "//node[contains(translate(@label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'%s')]";
-    private static String idTemplate = "//node[@id = '%s']";
-    private static String pluginNames[] = null;
+    protected static String xpathTemplate = "//node[contains(translate(@label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'%s')]";
+    protected static String idTemplate = "//node[@id = '%s']";
+    protected static String pluginNames[] = null;
 
-    private String vocabularyName = null;
-    private InputSource vocabulary = null;
-    private Boolean suggestHierarchy = true;
-    private Boolean storeHierarchy = true;
-    private String hierarchyDelimiter = "::";
+    protected String vocabularyName = null;
+    protected InputSource vocabulary = null;
+    protected Boolean suggestHierarchy = true;
+    protected Boolean storeHierarchy = true;
+    protected String hierarchyDelimiter = "::";
 
     public DSpaceControlledVocabulary()
     {
@@ -93,7 +95,7 @@ public class DSpaceControlledVocabulary extends SelfNamedPlugin implements Choic
                     return name.endsWith(".xml");
                 }
             }
-            String vocabulariesPath = ConfigurationManager.getProperty("dspace.dir")
+            String vocabulariesPath = DSpaceServicesFactory.getInstance().getConfigurationService().getProperty("dspace.dir")
                     + "/config/controlled-vocabularies/";
             String[] xmlFiles = (new File(vocabulariesPath)).list(new xmlFilter());
             List<String> names = new ArrayList<String>();
@@ -106,17 +108,19 @@ public class DSpaceControlledVocabulary extends SelfNamedPlugin implements Choic
         }
     }
 
-    private void init()
+    protected void init()
     {
     	if (vocabulary == null)
         {
+            ConfigurationService config = DSpaceServicesFactory.getInstance().getConfigurationService();
+
         	log.info("Initializing " + this.getClass().getName());
         	vocabularyName = this.getPluginInstanceName();
-            String vocabulariesPath = ConfigurationManager.getProperty("dspace.dir") + "/config/controlled-vocabularies/";
+            String vocabulariesPath = config.getProperty("dspace.dir") + "/config/controlled-vocabularies/";
             String configurationPrefix = "vocabulary.plugin." + vocabularyName;
-            storeHierarchy = ConfigurationManager.getBooleanProperty(configurationPrefix + ".hierarchy.store", storeHierarchy);
-            suggestHierarchy = ConfigurationManager.getBooleanProperty(configurationPrefix + ".hierarchy.suggest", suggestHierarchy);
-            String configuredDelimiter = ConfigurationManager.getProperty(configurationPrefix + ".delimiter");
+            storeHierarchy = config.getBooleanProperty(configurationPrefix + ".hierarchy.store", storeHierarchy);
+            suggestHierarchy = config.getBooleanProperty(configurationPrefix + ".hierarchy.suggest", suggestHierarchy);
+            String configuredDelimiter = config.getProperty(configurationPrefix + ".delimiter");
             if (configuredDelimiter != null)
             {
             	hierarchyDelimiter = configuredDelimiter.replaceAll("(^\"|\"$)","");
@@ -127,7 +131,7 @@ public class DSpaceControlledVocabulary extends SelfNamedPlugin implements Choic
     	}
     }
 
-    private String buildString(Node node)
+    protected String buildString(Node node)
     {
     	if (node.getNodeType() == Node.DOCUMENT_NODE)
         {
@@ -157,7 +161,7 @@ public class DSpaceControlledVocabulary extends SelfNamedPlugin implements Choic
     }
 
     @Override
-    public Choices getMatches(String field, String text, int collection, int start, int limit, String locale)
+    public Choices getMatches(String field, String text, Collection collection, int start, int limit, String locale)
     {
     	init();
     	log.debug("Getting matches for '" + text + "'");
@@ -213,7 +217,7 @@ public class DSpaceControlledVocabulary extends SelfNamedPlugin implements Choic
     }
 
     @Override
-    public Choices getBestMatch(String field, String text, int collection, String locale)
+    public Choices getBestMatch(String field, String text, Collection collection, String locale)
     {
     	init();
     	log.debug("Getting best match for '" + text + "'");

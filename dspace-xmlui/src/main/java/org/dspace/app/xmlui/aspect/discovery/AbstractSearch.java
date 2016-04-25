@@ -16,7 +16,9 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.excalibur.source.SourceValidity;
 import org.apache.log4j.Logger;
-import org.dspace.app.util.MetadataExposure;
+import org.dspace.app.util.MetadataExposureServiceImpl;
+import org.dspace.app.util.factory.UtilServiceFactory;
+import org.dspace.app.util.service.MetadataExposureService;
 import org.dspace.app.xmlui.cocoon.AbstractDSpaceTransformer;
 import org.dspace.app.xmlui.utils.DSpaceValidity;
 import org.dspace.app.xmlui.utils.HandleUtil;
@@ -28,14 +30,22 @@ import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.*;
 import org.dspace.content.Collection;
 import org.dspace.content.Item;
+import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.service.CollectionService;
+import org.dspace.content.service.CommunityService;
+import org.dspace.content.service.ItemService;
+import org.dspace.content.service.MetadataFieldService;
 import org.dspace.core.Constants;
 import org.dspace.core.LogManager;
 import org.dspace.discovery.*;
 import org.dspace.discovery.configuration.DiscoveryConfiguration;
 import org.dspace.discovery.configuration.DiscoveryHitHighlightFieldConfiguration;
 import org.dspace.discovery.configuration.DiscoverySortConfiguration;
+import org.dspace.discovery.configuration.DiscoverySortConfiguration.SORT_ORDER;
 import org.dspace.discovery.configuration.DiscoverySortFieldConfiguration;
-import org.dspace.handle.HandleManager;
+import org.dspace.handle.HandleServiceImpl;
+import org.dspace.handle.factory.HandleServiceFactory;
+import org.dspace.handle.service.HandleService;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
@@ -55,7 +65,7 @@ import java.util.List;
  * @author Mark Diggory (markd at atmire dot com)
  * @author Ben Bosman (ben at atmire dot com)
  */
-public abstract class AbstractSearch extends AbstractDSpaceTransformer implements CacheableProcessingComponent{
+public abstract class AbstractSearch extends AbstractDSpaceTransformer implements CacheableProcessingComponent {
 
     private static final Logger log = Logger.getLogger(AbstractSearch.class);
 
@@ -106,6 +116,15 @@ public abstract class AbstractSearch extends AbstractDSpaceTransformer implement
      */
     private SourceValidity validity;
 
+    protected CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
+   	protected CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
+    protected ItemService itemService = ContentServiceFactory.getInstance().getItemService();
+    protected MetadataFieldService metadataFieldService = ContentServiceFactory.getInstance().getMetadataFieldService();
+
+    protected MetadataExposureService metadataExposureService = UtilServiceFactory.getInstance().getMetadataExposureService();
+    protected HandleService handleService = HandleServiceFactory.getInstance().getHandleService();
+
+
     /**
      * Generate the unique caching key.
      * This key must be unique inside the space of this component.
@@ -153,7 +172,7 @@ public abstract class AbstractSearch extends AbstractDSpaceTransformer implement
                 DSpaceValidity validity = new DSpaceValidity();
 
                 DSpaceObject scope = getScope();
-                validity.add(scope);
+                validity.add(context, scope);
 
                 performSearch(scope);
 
@@ -165,7 +184,7 @@ public abstract class AbstractSearch extends AbstractDSpaceTransformer implement
                     validity.add("size:" + results.size());
 
                     for (DSpaceObject dso : results) {
-                        validity.add(dso);
+                        validity.add(context, dso);
                     }
                 }
 
@@ -301,14 +320,13 @@ public abstract class AbstractSearch extends AbstractDSpaceTransformer implement
             totalResults = queryResults.getTotalSearchResults();
             searchTime = ((float) queryResults.getSearchTime() / 1000) % 60;
 
-            if (searchScope instanceof Community)
-            {
+            if (searchScope instanceof Community) {
                 Community community = (Community) searchScope;
-                String communityName = community.getMetadata("name");
+                String communityName = community.getName();
                 results.setHead(T_head1_community.parameterize(displayedResults, totalResults, communityName, searchTime));
             } else if (searchScope instanceof Collection){
                 Collection collection = (Collection) searchScope;
-                String collectionName = collection.getMetadata("name");
+                String collectionName = collection.getName();
                 results.setHead(T_head1_collection.parameterize(displayedResults, totalResults, collectionName, searchTime));
             } else {
                 results.setHead(T_head1_none.parameterize(displayedResults, totalResults, searchTime));
@@ -434,13 +452,13 @@ public abstract class AbstractSearch extends AbstractDSpaceTransformer implement
     protected void renderItem(org.dspace.app.xmlui.wing.element.List dspaceObjectsList, Item item, DiscoverResult.DSpaceObjectHighlightResult highlightedResults) throws WingException, SQLException {
         org.dspace.app.xmlui.wing.element.List itemList = dspaceObjectsList.addList(item.getHandle() + ":item");
 
-        MetadataField[] metadataFields = MetadataField.findAll(context);
+        List<MetadataField> metadataFields = metadataFieldService.findAll(context);
         for (MetadataField metadataField : metadataFields)
         {
             //Retrieve the schema for this field
-            String schema = MetadataSchema.find(context, metadataField.getSchemaID()).getName();
+            String schema = metadataField.getMetadataSchema().getName();
             //Check if our field isn't hidden
-            if (!MetadataExposure.isHidden(context, schema, metadataField.getElement(), metadataField.getQualifier()))
+            if (!metadataExposureService.isHidden(context, schema, metadataField.getElement(), metadataField.getQualifier()))
             {
                 //Check if our metadata field is highlighted
                 StringBuilder metadataKey = new StringBuilder();
@@ -454,13 +472,13 @@ public abstract class AbstractSearch extends AbstractDSpaceTransformer implement
                 itemName.append(item.getHandle()).append(":").append(metadataKey.toString());
 
 
-                DCValue[] itemMetadata = item.getMetadata(schema, metadataField.getElement(), metadataField.getQualifier(), Item.ANY);
-                if(!ArrayUtils.isEmpty(itemMetadata))
+                List<MetadataValue> itemMetadata = itemService.getMetadata(item, schema, metadataField.getElement(), metadataField.getQualifier(), Item.ANY);
+                if(!CollectionUtils.isEmpty(itemMetadata))
                 {
                     org.dspace.app.xmlui.wing.element.List metadataFieldList = itemList.addList(itemName.toString());
-                    for (DCValue metadataValue : itemMetadata)
+                    for (MetadataValue metadataValue : itemMetadata)
                     {
-                        String value = metadataValue.value;
+                        String value = metadataValue.getValue();
                         addMetadataField(highlightedResults, metadataKey.toString(), metadataFieldList, value);
                     }
                 }
@@ -495,14 +513,14 @@ public abstract class AbstractSearch extends AbstractDSpaceTransformer implement
      */
     protected void renderCollection(Collection collection, DiscoverResult.DSpaceObjectHighlightResult highlightedResults, org.dspace.app.xmlui.wing.element.List collectionMetadata) throws WingException {
 
-        String description = collection.getMetadata("introductory_text");
-        String description_abstract = collection.getMetadata("short_description");
-        String description_table = collection.getMetadata("side_bar_text");
+        String description = collectionService.getMetadata(collection, "introductory_text");
+        String description_abstract = collectionService.getMetadata(collection, "short_description");
+        String description_table = collectionService.getMetadata(collection, "side_bar_text");
         String identifier_uri = "http://hdl.handle.net/" + collection.getHandle();
-        String provenance = collection.getMetadata("provenance_description");
-        String rights = collection.getMetadata("copyright_text");
-        String rights_license = collection.getMetadata("license");
-        String title = collection.getMetadata("name");
+        String provenance = collectionService.getMetadata(collection, "provenance_description");
+        String rights = collectionService.getMetadata(collection, "copyright_text");
+        String rights_license = collectionService.getMetadata(collection, "license");
+        String title = collection.getName();
 
         if(StringUtils.isNotBlank(description))
         {
@@ -546,12 +564,12 @@ public abstract class AbstractSearch extends AbstractDSpaceTransformer implement
      */
 
     protected void renderCommunity(Community community, DiscoverResult.DSpaceObjectHighlightResult highlightedResults, org.dspace.app.xmlui.wing.element.List communityMetadata) throws WingException {
-        String description = community.getMetadata("introductory_text");
-        String description_abstract = community.getMetadata("short_description");
-        String description_table = community.getMetadata("side_bar_text");
+        String description = communityService.getMetadata(community, "introductory_text");
+        String description_abstract = communityService.getMetadata(community, "short_description");
+        String description_table = communityService.getMetadata(community, "side_bar_text");
         String identifier_uri = "http://hdl.handle.net/" + community.getHandle();
-        String rights = community.getMetadata("copyright_text");
-        String title = community.getMetadata("name");
+        String rights = communityService.getMetadata(community, "copyright_text");
+        String title = community.getName();
 
         if(StringUtils.isNotBlank(description))
         {
@@ -616,8 +634,8 @@ public abstract class AbstractSearch extends AbstractDSpaceTransformer implement
                         }
                         break;
                     default:
-                        //Partial match allowed, only render the highlighted part
-                        if(value.contains(highlight.replaceAll("</?em>", "")))
+                        //Partial match allowed, only render the highlighted part (will also remove \r since this char is not indexed in solr & will cause issues
+                        if(value.replace("\r", "").contains(highlight.replaceAll("</?em>", "")))
                         {
                             value = highlight;
                         }
@@ -680,67 +698,53 @@ public abstract class AbstractSearch extends AbstractDSpaceTransformer implement
             // No scope, display all root level communities
             scope.addOption("/", T_all_of_dspace);
             scope.setOptionSelected("/");
-            for (Community community : Community.findAllTop(context)) {
-                scope.addOption(community.getHandle(), community.getMetadata("name"));
+            for (Community community : communityService.findAllTop(context)) {
+                scope.addOption(community.getHandle(), community.getName());
             }
         } else if (scopeDSO instanceof Community) {
             // The scope is a community, display all collections contained
             // within
             Community community = (Community) scopeDSO;
             scope.addOption("/", T_all_of_dspace);
-            scope.addOption(community.getHandle(), community.getMetadata("name"));
+            scope.addOption(community.getHandle(), community.getName());
             scope.setOptionSelected(community.getHandle());
 
             for (Collection collection : community.getCollections()) {
-                scope.addOption(collection.getHandle(), collection.getMetadata("name"));
+                scope.addOption(collection.getHandle(), collection.getName());
             }
         } else if (scopeDSO instanceof Collection) {
             // The scope is a collection, display all parent collections.
             Collection collection = (Collection) scopeDSO;
             scope.addOption("/", T_all_of_dspace);
-            scope.addOption(collection.getHandle(), collection.getMetadata("name"));
+            scope.addOption(collection.getHandle(), collection.getName());
             scope.setOptionSelected(collection.getHandle());
 
-            Community[] communities = collection.getCommunities()[0]
-                    .getAllParents();
+            List<Community> communities = communityService.getAllParents(context, collection.getCommunities().get(0));
             for (Community community : communities) {
-                scope.addOption(community.getHandle(), community.getMetadata("name"));
+                scope.addOption(community.getHandle(), community.getName());
             }
         }
     }
-
+    
     /**
-     * Query DSpace for a list of all items / collections / or communities that
-     * match the given search query.
-     *
-     *
-     * @param scope the dspace object parent
+     *  Prepare DiscoverQuery given the current scope and query string
+     * 
+     *  @param scope the dspace object parent
      */
-    public void performSearch(DSpaceObject scope) throws UIException, SearchServiceException {
+    public DiscoverQuery prepareQuery(DSpaceObject scope, String query, String[] fqs) throws UIException, SearchServiceException {
+    	
+    	this.queryArgs = new DiscoverQuery();
+    	
+    	int page = getParameterPage();
+    	    	
+    	// Escape any special characters in this user-entered query
+        query = DiscoveryUIUtils.escapeQueryChars(query);
 
-        if (queryResults != null)
-        {
-            return;
-        }
-        
+    	List<String> filterQueries = new ArrayList<String>();
 
-        String query = getQuery();
-
-        //DSpaceObject scope = getScope();
-
-        int page = getParameterPage();
-
-        List<String> filterQueries = new ArrayList<String>();
-
-        String[] fqs = getFilterQueries();
-
-        if (fqs != null)
-        {
+        if (fqs != null) {
             filterQueries.addAll(Arrays.asList(fqs));
-        }
-
-
-        this.queryArgs = new DiscoverQuery();
+        }        
 
         //Add the configured default filter queries
         DiscoveryConfiguration discoveryConfiguration = SearchUtils.getDiscoveryConfiguration(scope);
@@ -748,9 +752,8 @@ public abstract class AbstractSearch extends AbstractDSpaceTransformer implement
         queryArgs.addFilterQueries(defaultFilterQueries.toArray(new String[defaultFilterQueries.size()]));
 
         if (filterQueries.size() > 0) {
-            queryArgs.addFilterQueries(filterQueries.toArray(new String[filterQueries.size()]));
+        	queryArgs.addFilterQueries(filterQueries.toArray(new String[filterQueries.size()]));
         }
-
 
         queryArgs.setMaxResults(getParameterRpp());
 
@@ -824,11 +827,25 @@ public abstract class AbstractSearch extends AbstractDSpaceTransformer implement
         }
 
         queryArgs.setSpellCheck(discoveryConfiguration.isSpellCheckEnabled());
-
-        this.queryResults = SearchUtils.getSearchService().search(context, scope, queryArgs);
+        
+        return queryArgs;
     }
 
+    /**
+     * Query DSpace for a list of all items / collections / or communities that
+     * match the given search query.
+     *
+     *
+     * @param scope the dspace object parent
+     */
+    public void performSearch(DSpaceObject scope) throws UIException, SearchServiceException {
 
+        if (queryResults != null) {
+            return;
+        }
+        
+        this.queryResults = SearchUtils.getSearchService().search(context, scope, prepareQuery(scope, getQuery(), getFilterQueries()));
+    }
 
     /**
      * Returns a list of the filter queries for use in rendering pages, creating page more urls, ....
@@ -979,14 +996,32 @@ public abstract class AbstractSearch extends AbstractDSpaceTransformer implement
         boolean selected = ("score".equals(currentSort) || (currentSort == null && searchSortConfiguration.getDefaultSort() == null));
         sortOptions.addItem("relevance", "gear-option" + (selected ? " gear-option-selected" : "")).addXref("sort_by=score&order=" + searchSortConfiguration.getDefaultSortOrder(), T_sort_by_relevance);
 
+        if (currentSort == null
+                && searchSortConfiguration.getDefaultSort() != null)
+        {
+            currentSort = SearchUtils.getSearchService()
+                    .toSortFieldIndex(
+                            searchSortConfiguration.getDefaultSort()
+                                    .getMetadataField(),
+                            searchSortConfiguration.getDefaultSort().getType());
+        }
+        String sortOrder = getParameterOrder();
+        if (sortOrder == null
+                && searchSortConfiguration.getDefaultSortOrder() != null)
+        {
+            sortOrder = searchSortConfiguration.getDefaultSortOrder().name();
+        }
+
         if(searchSortConfiguration.getSortFields() != null)
         {
             for (DiscoverySortFieldConfiguration sortFieldConfiguration : searchSortConfiguration.getSortFields())
             {
                 String sortField = SearchUtils.getSearchService().toSortFieldIndex(sortFieldConfiguration.getMetadataField(), sortFieldConfiguration.getType());
 
-                boolean selectedAsc = ((sortField.equals(currentSort) && "asc".equals(getParameterOrder())) || (sortFieldConfiguration.equals(searchSortConfiguration.getDefaultSort())) && DiscoverySortConfiguration.SORT_ORDER.asc.equals(searchSortConfiguration.getDefaultSortOrder()));
-                boolean selectedDesc= ((sortField.equals(currentSort) && "desc".equals(getParameterOrder())) || (sortFieldConfiguration.equals(searchSortConfiguration.getDefaultSort())) && DiscoverySortConfiguration.SORT_ORDER.desc.equals(searchSortConfiguration.getDefaultSortOrder()));
+                boolean selectedAsc = sortField.equals(currentSort)
+                        && SORT_ORDER.asc.name().equals(sortOrder);
+                boolean selectedDesc = sortField.equals(currentSort)
+                        && SORT_ORDER.desc.name().equals(sortOrder);
                 String sortFieldParam = "sort_by=" + sortField + "&order=";
                 sortOptions.addItem(sortField, "gear-option" + (selectedAsc ? " gear-option-selected" : "")).addXref(sortFieldParam + "asc", message("xmlui.Discovery.AbstractSearch.sort_by." + sortField + "_asc"));
                 sortOptions.addItem(sortField, "gear-option" + (selectedDesc ? " gear-option-selected" : "")).addXref(sortFieldParam + "desc", message("xmlui.Discovery.AbstractSearch.sort_by." + sortField + "_desc"));
@@ -1023,7 +1058,7 @@ public abstract class AbstractSearch extends AbstractDSpaceTransformer implement
         else
         {
             // Get the search scope from the location parameter
-            dso = HandleManager.resolveToObject(context, scopeString);
+            dso = handleService.resolveToObject(context, scopeString);
         }
 
         return dso;
@@ -1073,3 +1108,4 @@ public abstract class AbstractSearch extends AbstractDSpaceTransformer implement
                 + countCollections + "," + countItems + ")"));
     }
 }
+

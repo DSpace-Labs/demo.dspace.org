@@ -15,8 +15,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.http.HttpException;
 
-import org.apache.commons.httpclient.HttpException;
 import org.dspace.core.Context;
 
 /**
@@ -25,15 +25,15 @@ import org.dspace.core.Context;
  */
 public class CiNiiOnlineDataLoader extends NetworkSubmissionLookupDataLoader
 {
-    private CiNiiService ciniiService = new CiNiiService();
+    protected CiNiiService ciniiService = new CiNiiService();
 
-    private boolean searchProvider = true;
+    protected boolean searchProvider = true;
 
     /** Application id to use CiNii */
-    private String appId = null;
+    protected String appId = null;
 
     /** max result number to return */
-    private int maxResults = 10;
+    protected int maxResults = 10;
 
     public void setCiNiiService(CiNiiService ciniiService)
     {

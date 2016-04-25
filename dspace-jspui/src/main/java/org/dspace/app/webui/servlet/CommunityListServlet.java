@@ -10,6 +10,7 @@ package org.dspace.app.webui.servlet;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.*;
 
@@ -20,9 +21,10 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
 import org.dspace.app.webui.util.JSPManager;
 import org.dspace.authorize.AuthorizeException;
-import org.dspace.authorize.AuthorizeManager;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
+import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.service.CommunityService;
 import org.dspace.core.Context;
 import org.dspace.core.LogManager;
 
@@ -43,61 +45,69 @@ public class CommunityListServlet extends DSpaceServlet
     private static final Object staticLock = new Object();
     
     /** log4j category */
-    private static Logger log = Logger.getLogger(CommunityListServlet.class);
+    private static final Logger log = Logger.getLogger(CommunityListServlet.class);
 
+    // services API
+    private final transient CommunityService communityService
+             = ContentServiceFactory.getInstance().getCommunityService();
+    
+    @Override
     protected void doDSGet(Context context, HttpServletRequest request,
             HttpServletResponse response) throws ServletException, IOException,
             SQLException, AuthorizeException
-    { 
-           synchronized (staticLock) 
-           {
-            colMap = new HashMap<Integer, Collection[]>();
-            commMap = new HashMap<Integer, Community[]>();
+    {
+        // This will map community IDs to arrays of collections
+    	Map<String, List<Collection>> colMap;
 
-            log.info(LogManager.getHeader(context, "view_community_list", ""));
+        // This will map communityIDs to arrays of sub-communities
+        Map<String, List<Community>> commMap;
 
-            Community[] communities = Community.findAllTop(context);
+        colMap = new HashMap<>();
+        commMap = new HashMap<>();
 
-            for (int com = 0; com < communities.length; com++) 
-            {
-                build(communities[com]);
-            }
+        log.info(LogManager.getHeader(context, "view_community_list", ""));
 
-            // can they admin communities?
-            if (AuthorizeManager.isAdmin(context)) 
-            {
-                // set a variable to create an edit button
-                request.setAttribute("admin_button", Boolean.TRUE);
-            }
+        List<Community> communities = communityService.findAllTop(context);
 
-            request.setAttribute("communities", communities);
-            request.setAttribute("collections.map", colMap);
-            request.setAttribute("subcommunities.map", commMap);
-            JSPManager.showJSP(request, response, "/community-list.jsp");
-           }
-    }
-    /*
-     * Get all subcommunities and collections from a community
-     */
-    private void build(Community c) throws SQLException {
+        for (Community c : communities) 
+        {
+            build(c, colMap, commMap);
+        }
 
-        Integer comID = Integer.valueOf(c.getID());
-
-        // Find collections in community
-        Collection[] colls = c.getCollections();
-        colMap.put(comID, colls);
-
-        // Find subcommunties in community
-        Community[] comms = c.getSubcommunities();
-        
-        // Get all subcommunities for each communities if they have some
-        if (comms.length > 0) 
+        // can they admin communities?
+        if (authorizeService.isAdmin(context))
         {
             commMap.put(comID, comms);
             
             for (int sub = 0; sub < comms.length; sub++) {
                 
                 build(comms[sub]);
+            }
+        }
+    }
+    /*
+     * Get all subcommunities and collections from a community
+     */
+	private void build(Community c, Map<String, List<Collection>> colMap, Map<String, List<Community>> commMap)
+			throws SQLException {
+
+        String comID = c.getID().toString();
+
+        // Find collections in community
+        List<Collection> colls = c.getCollections();
+        colMap.put(comID, colls);
+
+        // Find subcommunties in community
+        List<Community> comms = c.getSubcommunities();
+        
+        // Get all subcommunities for each communities if they have some
+        if (comms.size() > 0) 
+        {
+            commMap.put(comID, comms);
+            
+            for (Community sub : comms) {
+                
+                build(sub, colMap, commMap);
             }
         }
     }

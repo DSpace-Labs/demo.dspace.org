@@ -7,27 +7,69 @@
  */
 package org.dspace.content;
 
-import java.sql.SQLException;
+import org.apache.commons.collections.CollectionUtils;
+import org.dspace.authorize.ResourcePolicy;
+import org.dspace.handle.Handle;
+import org.hibernate.annotations.GenericGenerator;
 
-import org.dspace.authorize.AuthorizeException;
-import org.dspace.core.Constants;
-import org.dspace.core.Context;
-import org.dspace.eperson.EPerson;
-import org.dspace.eperson.Group;
+import java.io.Serializable;
+import java.util.*;
+
+import javax.persistence.*;
 
 /**
  * Abstract base class for DSpace objects
  */
-public abstract class DSpaceObject
+@Entity
+@Inheritance(strategy= InheritanceType.JOINED)
+@Table(name = "dspaceobject")
+public abstract class DSpaceObject implements Serializable
 {
+    @Id
+    @GeneratedValue(generator = "system-uuid")
+    @GenericGenerator(name = "system-uuid", strategy = "uuid2")
+    @Column(name = "uuid", unique = true, nullable = false, insertable = true, updatable = false)
+    protected java.util.UUID id;
+
     // accumulate information to add to "detail" element of content Event,
     // e.g. to document metadata fields touched, etc.
+    @Transient
     private StringBuffer eventDetails = null;
+    
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "dSpaceObject", cascade={CascadeType.PERSIST}, orphanRemoval = true)
+    @OrderBy("metadataField, place")
+    private List<MetadataValue> metadata = new ArrayList<>();
+
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "dso")
+    // Order by is here to ensure that the oldest handle is retrieved first,
+    // multiple handles are assigned to the latest version of an item the original handle will have the lowest identifier
+    // This handle is the prefered handle.
+    @OrderBy("handle_id ASC")
+    private List<Handle> handles = new ArrayList<>();
+
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "dSpaceObject", cascade={CascadeType.PERSIST}, orphanRemoval = false)
+    private List<ResourcePolicy> resourcePolicies = new ArrayList<>();
+
+    /**
+     * True if anything else was changed since last update()
+     * (to drive event mechanism)
+     */
+    @Transient
+    private boolean modifiedMetadata = false;
+
+    /** Flag set when data is modified, for events */
+    @Transient
+    private boolean modified = false;
+
+    protected DSpaceObject()
+    {
+
+    }
 
     /**
      * Reset the cache of event details.
      */
-    protected void clearDetails()
+    public void clearDetails()
     {
         eventDetails = null;
     }
@@ -54,7 +96,7 @@ public abstract class DSpaceObject
     /**
      * @return summary of event details, or null if there are none.
      */
-    protected String getDetails()
+    public String getDetails()
     {
         return (eventDetails == null ? null : eventDetails.toString());
     }
@@ -67,20 +109,15 @@ public abstract class DSpaceObject
     public abstract int getType();
 
     /**
-     * Provide the text name of the type of this DSpaceObject. It is most likely all uppercase.
-     * @return Object type as text
-     */
-    public String getTypeText()
-    {
-        return Constants.typeText[this.getType()];
-    }
-
-    /**
      * Get the internal ID (database primary key) of this object
      * 
      * @return internal ID of object
      */
-    public abstract int getID();
+    public UUID getID(){
+        return id;
+    }
+
+    public abstract String getName();
 
     /**
      * Get the Handle of the object. This may return <code>null</code>
@@ -88,91 +125,71 @@ public abstract class DSpaceObject
      * @return Handle of the object, or <code>null</code> if it doesn't have
      *         one
      */
-    public abstract String getHandle();
-
-    /**
-     * Get a proper name for the object. This may return <code>null</code>.
-     * Name should be suitable for display in a user interface.
-     *
-     * @return Name for the object, or <code>null</code> if it doesn't have
-     *         one
-     */
-    public abstract String getName();
-
-    /**
-     * Generic find for when the precise type of a DSO is not known, just the
-     * a pair of type number and database ID.
-     *
-     * @param context - the context
-     * @param type - type number
-     * @param id - id within table of type'd objects
-     * @return the object found, or null if it does not exist.
-     * @throws SQLException only upon failure accessing the database.
-     */
-    public static DSpaceObject find(Context context, int type, int id)
-        throws SQLException
+    public String getHandle()
     {
-        switch (type)
-        {
-            case Constants.BITSTREAM : return Bitstream.find(context, id);
-            case Constants.BUNDLE    : return Bundle.find(context, id);
-            case Constants.ITEM      : return Item.find(context, id);
-            case Constants.COLLECTION: return Collection.find(context, id);
-            case Constants.COMMUNITY : return Community.find(context, id);
-            case Constants.GROUP     : return Group.find(context, id);
-            case Constants.EPERSON   : return EPerson.find(context, id);
-            case Constants.SITE      : return Site.find(context, id);
-        }
-        return null;
+        return (CollectionUtils.isNotEmpty(handles) ? handles.get(0).getHandle() : null);
     }
 
-    /**
-     * Return the dspace object where an ADMIN action right is sufficient to
-     * grant the initial authorize check.
-     * <p>
-     * Default behaviour is ADMIN right on the object grant right on all other
-     * action on the object itself. Subclass should override this method as
-     * needed.
-     * 
-     * @param action
-     *            ID of action being attempted, from
-     *            <code>org.dspace.core.Constants</code>. The ADMIN action is
-     *            not a valid parameter for this method, an
-     *            IllegalArgumentException should be thrown
-     * @return the dspace object, if any, where an ADMIN action is sufficient to
-     *         grant the original action
-     * @throws SQLException
-     * @throws IllegalArgumentException
-     *             if the ADMIN action is supplied as parameter of the method
-     *             call
-     */
-    public DSpaceObject getAdminObject(int action) throws SQLException
+    void setHandle(List<Handle> handle)
     {
-        if (action == Constants.ADMIN)
-        {
-            throw new IllegalArgumentException("Illegal call to the DSpaceObject.getAdminObject method");
-        }
-        return this;
+        this.handles = handle;
     }
 
-    /**
-     * Return the dspace object that "own" the current object in the hierarchy.
-     * Note that this method has a meaning slightly different from the
-     * getAdminObject because it is independent of the action but it is in a way
-     * related to it. It defines the "first" dspace object <b>OTHER</b> then the
-     * current one, where allowed ADMIN actions imply allowed ADMIN actions on
-     * the object self.
-     * 
-     * @return the dspace object that "own" the current object in
-     *         the hierarchy
-     * @throws SQLException
-     */
-    public DSpaceObject getParentObject() throws SQLException
+    public void addHandle(Handle handle)
     {
-        return null;
+        this.handles.add(handle);
     }
 
-    public abstract void update() throws SQLException, AuthorizeException;
+    public List<Handle> getHandles() {
+        return handles;
+    }
 
-    public abstract void updateLastModified();
+    protected List<MetadataValue> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(List<MetadataValue> metadata) {
+        this.metadata = metadata;
+    }
+
+    protected void removeMetadata(MetadataValue metadataValue)
+    {
+        setMetadataModified();
+        getMetadata().remove(metadataValue);
+    }
+
+    protected void removeMetadata(List<MetadataValue> metadataValues)
+    {
+        setMetadataModified();
+        getMetadata().removeAll(metadataValues);
+    }
+
+
+    protected void addMetadata(MetadataValue metadataValue) {
+        setMetadataModified();
+        getMetadata().add(metadataValue);
+        addDetails(metadataValue.getMetadataField().toString());
+    }
+
+    public List<ResourcePolicy> getResourcePolicies() {
+        return resourcePolicies;
+    }
+
+    public boolean isMetadataModified() {
+        return modifiedMetadata;
+    }
+
+    protected void setMetadataModified() {
+        this.modifiedMetadata = true;
+    }
+
+    public boolean isModified() {
+        return modified;
+    }
+    public void clearModified() {
+        this.modified = false;
+    }
+    protected void setModified() {
+        this.modified = true;
+    }
 }

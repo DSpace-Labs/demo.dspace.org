@@ -24,8 +24,9 @@
 <%@ page import="org.dspace.submit.AbstractProcessingStep" %>
 <%@ page import="org.dspace.app.util.SubmissionInfo" %>
 <%@ page import="org.dspace.app.webui.util.UIUtil" %>
-<%@ page import="org.dspace.license.CreativeCommons" %>
+<%@ page import="org.dspace.license.CreativeCommonsServiceImpl" %>
 <%@ page import="org.dspace.core.ConfigurationManager" %>
+<%@ page import="org.dspace.license.factory.LicenseServiceFactory" %>
 
 <%@ taglib uri="http://www.dspace.org/dspace-tags.tld" prefix="dspace" %>
 
@@ -59,7 +60,7 @@
 
     String licenseURL = "";
     if(licenseExists)
-        licenseURL = CreativeCommons.getLicenseURL(subInfo.getSubmissionItem().getItem());
+        licenseURL = LicenseServiceFactory.getInstance().getCreativeCommonsService().getLicenseURL(context, subInfo.getSubmissionItem().getItem());
 %>
 
 <dspace:layout style="submission"
@@ -106,7 +107,7 @@
 
 	<%-- <iframe src="http://creativecommons.org/license/?partner=dspace&stylesheet=<%= java.net.URLEncoder.encode(ssURL) %>&exit_url=<%= java.net.URLEncoder.encode(exitURL) %>" width="100%" height="540">Your browser must support IFrames to use this feature
 	</iframe> --%>
-	<iframe src="http://creativecommons.org/license/?partner=dspace&amp;stylesheet=<%= java.net.URLEncoder.encode(ssURL, "UTF-8") %>&amp;exit_url=<%= java.net.URLEncoder.encode(exitURL, "UTF-8") %><%= jurisdiction %>" width="100%" height="540"><fmt:message key="jsp.submit.creative-commons.info3"/>
+	<iframe src="https://creativecommons.org/choose/?partner=dspace&amp;stylesheet=<%= java.net.URLEncoder.encode(ssURL, "UTF-8") %>&amp;exit_url=<%= java.net.URLEncoder.encode(exitURL, "UTF-8") %><%= jurisdiction %>" width="100%" height="540"><fmt:message key="jsp.submit.creative-commons.info3"/>
 	</iframe>
 
     <%-- Hidden fields needed for SubmissionController servlet to know which step is next--%>

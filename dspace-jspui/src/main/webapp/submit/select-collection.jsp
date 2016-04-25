@@ -23,6 +23,7 @@
 <%@ page import="org.dspace.submit.AbstractProcessingStep" %>
 <%@ page import="org.dspace.app.webui.util.UIUtil" %>
 <%@ page import="org.dspace.content.Collection" %>
+<%@ page import="java.util.List" %>
 
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt"
     prefix="fmt" %>
@@ -33,8 +34,8 @@
     request.setAttribute("LanguageSwitch", "hide");
 
     //get collections to choose from
-    Collection[] collections =
-        (Collection[]) request.getAttribute("collections");
+    List<Collection> collections =
+        (List<Collection>) request.getAttribute("collections");
 
 	//check if we need to display the "no collection selected" error
     Boolean noCollection = (Boolean) request.getAttribute("no.collection");
@@ -52,7 +53,7 @@
     <dspace:popup page="<%= LocaleSupport.getLocalizedMessage(pageContext, \"help.index\") + \"#choosecollection\"%>"><fmt:message key="jsp.morehelp"/> </dspace:popup></h1>
 
 	
-<%  if (collections.length > 0)
+<%  if (collections.size() > 0)
     {
 %>
 	<p><fmt:message key="jsp.submit.select-collection.info1"/></p>
@@ -72,17 +73,7 @@
 					<label for="tcollection" class="input-group-addon">
 						<fmt:message key="jsp.submit.select-collection.collection"/>
 					</label>
-                    <select class="form-control" name="collection" id="tcollection">
-                    	<option value="-1"></option>
-<%
-        for (int i = 0; i < collections.length; i++)
-        {
-%>
-                            <option value="<%= collections[i].getID() %>"><%= collections[i].getMetadata("name") %></option>
-<%
-        }
-%>
-                        </select>
+          <dspace:selectcollection klass="form-control" id="tcollection" collection="-1" name="collection"/>
 					</div><br/>
             <%-- Hidden fields needed for SubmissionController servlet to know which step is next--%>
             <%= SubmissionController.getSubmissionParameters(context, request) %>

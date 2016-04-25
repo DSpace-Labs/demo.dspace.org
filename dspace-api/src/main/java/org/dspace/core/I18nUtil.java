@@ -18,6 +18,8 @@ import java.util.ResourceBundle;
 import java.util.StringTokenizer;
 import java.util.List;
 import java.util.ArrayList;
+import org.dspace.services.ConfigurationService;
+import org.dspace.services.factory.DSpaceServicesFactory;
 
 
 
@@ -54,11 +56,12 @@ public class I18nUtil
      */
     public static Locale getDefaultLocale()
     {
+        ConfigurationService config = DSpaceServicesFactory.getInstance().getConfigurationService();
         // First, try configured default locale
         Locale defaultLocale = null;
-        if (!StringUtils.isEmpty(ConfigurationManager.getProperty("default.locale")))
+        if (config.hasProperty("default.locale"))
         {
-            defaultLocale = makeLocale(ConfigurationManager.getProperty("default.locale"));
+            defaultLocale = makeLocale(config.getProperty("default.locale"));
         }
 
         // Finally, get the Locale of the JVM
@@ -123,11 +126,12 @@ public class I18nUtil
      */
     public static Locale[] getSupportedLocales()
     {
-        
-        String ll = ConfigurationManager.getProperty("webui.supported.locales");
-        if (ll != null)
+        ConfigurationService config = DSpaceServicesFactory.getInstance().getConfigurationService();
+
+        String[] locales = config.getArrayProperty("webui.supported.locales");
+        if (locales != null && locales.length>0)
         {
-            return parseLocales(ll);
+            return parseLocales(locales);
         }
         else
         {
@@ -231,13 +235,13 @@ public class I18nUtil
         String fileName = "";
         final String FORM_DEF_FILE = "input-forms";
         final String FILE_TYPE = ".xml";
-        String defsFilename = ConfigurationManager.getProperty("dspace.dir")
+        String defsFilename = DSpaceServicesFactory.getInstance().getConfigurationService().getProperty("dspace.dir")
                 + File.separator + "config" + File.separator + FORM_DEF_FILE;
         fileName =  getFilename(locale, defsFilename, FILE_TYPE);
         return fileName;
     }
     /**
-     * et the i18n message string for a given key and use the default Locale
+     * Get the i18n message string for a given key and use the default Locale.
      *
      * @param key
      *        String - name of the key to get the message for
@@ -247,12 +251,9 @@ public class I18nUtil
      *
      *
      */
-    public static String getMessage(String key) throws MissingResourceException
+    public static String getMessage(String key)
     {
-        
-        String message = getMessage(key.trim(), DEFAULTLOCALE);
-      
-        return message;
+        return getMessage(key.trim(), DEFAULTLOCALE);
     }
     
     /**
@@ -265,20 +266,26 @@ public class I18nUtil
      *
      * @return message
      *         String of the message
-     *
-     *
      */
-    public static String getMessage(String key, Locale locale) throws MissingResourceException
+    public static String getMessage(String key, Locale locale)
     {
-        String message = "";
         if (locale == null)
         {
             locale = DEFAULTLOCALE;
         }
-        ResourceBundle messages = ResourceBundle.getBundle("Messages", locale);
-        message = messages.getString(key.trim());
-        
-        return message;
+        ResourceBundle.Control control = 
+            ResourceBundle.Control.getNoFallbackControl(
+            ResourceBundle.Control.FORMAT_DEFAULT);
+
+        ResourceBundle messages = ResourceBundle.getBundle("Messages", locale, control);
+        try {
+            String message = messages.getString(key.trim());
+            return message;
+        } catch (MissingResourceException e) {
+            log.error("'" + key + "' translation undefined in locale '"
+                    + locale.toString() + "'");
+            return key;
+        }
     }
     
     /**
@@ -294,7 +301,7 @@ public class I18nUtil
      *
      *
      */
-    public static String getMessage(String key, Context c) throws MissingResourceException
+    public static String getMessage(String key, Context c)
     {
         return getMessage(key.trim(), c.getCurrentLocale());
     }
@@ -316,7 +323,7 @@ public class I18nUtil
         /** Name of the default license */
         final String DEF_LIC_FILE = "default";
         final String FILE_TYPE = ".license";
-        String defsFilename = ConfigurationManager.getProperty("dspace.dir")
+        String defsFilename = DSpaceServicesFactory.getInstance().getConfigurationService().getProperty("dspace.dir")
                 + File.separator + "config" + File.separator + DEF_LIC_FILE;
         
         fileName = getFilename(locale, defsFilename, FILE_TYPE);
@@ -416,7 +423,7 @@ public class I18nUtil
     public static String getEmailFilename(Locale locale, String name)
     {
         String templateName = "";
-        String templateFile = ConfigurationManager.getProperty("dspace.dir")
+        String templateFile = DSpaceServicesFactory.getInstance().getConfigurationService().getProperty("dspace.dir")
                 + File.separator + "config" + File.separator + "emails"
                 + File.separator + name;
 
@@ -427,13 +434,13 @@ public class I18nUtil
     /**
      * Creates array of Locales from text list of locale-specifications.
      * Used to parse lists in DSpace configuration properties.
-     * @param ll locale list of comma-separated values
+     * @param locales locale string array
      * @return array of locale results, possibly empty
      */
-    public static Locale[] parseLocales(String ll)
+    public static Locale[] parseLocales(String[] locales)
     {
         List<Locale> resultList = new ArrayList<Locale>();
-        for (String ls : ll.trim().split("\\s*,\\s*"))
+        for (String ls : locales)
         {
             Locale lc = makeLocale(ls);
             if (lc != null)

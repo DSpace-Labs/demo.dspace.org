@@ -10,9 +10,10 @@ package org.dspace.app.xmlui.aspect.general;
 import java.io.IOException;
 import java.sql.SQLException;
 
-import org.dspace.content.authority.ChoiceAuthorityManager;
 import org.dspace.content.DCPersonName;
-import org.dspace.core.ConfigurationManager;
+import org.dspace.content.authority.factory.ContentAuthorityServiceFactory;
+import org.dspace.content.authority.service.ChoiceAuthorityService;
+import org.dspace.services.factory.DSpaceServicesFactory;
 import org.dspace.app.xmlui.cocoon.AbstractDSpaceTransformer;
 import org.dspace.app.xmlui.utils.UIException;
 import org.dspace.app.xmlui.wing.Message;
@@ -76,6 +77,8 @@ public class ChoiceLookupTransformer extends AbstractDSpaceTransformer
     private static final Message T_results = message(MESSAGE_PREFIX+"results");
     private static final Message T_fail =    message(MESSAGE_PREFIX+"fail");
 
+    protected ChoiceAuthorityService choicheAuthorityService = ContentAuthorityServiceFactory.getInstance().getChoiceAuthorityService();
+
     public void addBody(Body body) throws SAXException, WingException,
             UIException, SQLException, IOException, AuthorizeException
     {
@@ -138,7 +141,7 @@ public class ChoiceLookupTransformer extends AbstractDSpaceTransformer
         // the <select> tag, and param values
         Item selectItem = fl.addItem("select", "choices-lookup");
         Select s = selectItem.addSelect("chooser", "choices-lookup");
-        s.setSize(ConfigurationManager.getIntProperty("xmlui.lookup.select.size", 12));
+        s.setSize(DSpaceServicesFactory.getInstance().getConfigurationService().getIntProperty("xmlui.lookup.select.size", 12));
 
         // parameters for javascript
         Hidden h = selectItem.addHidden("paramField");
@@ -163,7 +166,7 @@ public class ChoiceLookupTransformer extends AbstractDSpaceTransformer
         h.setValue(confIndicatorID);
         h = selectItem.addHidden("paramFail");
         h.setValue(T_fail);
-        boolean isClosed = ChoiceAuthorityManager.getManager().isClosed(field);
+        boolean isClosed = choicheAuthorityService.isClosed(field);
         h = selectItem.addHidden("paramIsClosed");
         h.setValue(String.valueOf(isClosed));
         h = selectItem.addHidden("paramCollection");
@@ -278,7 +281,7 @@ public class ChoiceLookupTransformer extends AbstractDSpaceTransformer
     // get field-specific label value
     private String getFieldLabel(String field, String name)
     {
-        return ConfigurationManager.getProperty(CONFIG_PREFIX+field+"."+name);
+        return DSpaceServicesFactory.getInstance().getConfigurationService().getProperty(CONFIG_PREFIX+field+"."+name);
     }
 
     // get field-specific label value
