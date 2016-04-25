@@ -12,7 +12,6 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.*;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -36,14 +35,6 @@ import org.dspace.core.LogManager;
  */
 public class CommunityListServlet extends DSpaceServlet
 {
-    
-    // This will map community IDs to arrays of collections
-    private Map<Integer, Collection[]> colMap;
-
-    // This will map communityIDs to arrays of sub-communities
-    private Map<Integer, Community[]> commMap;
-    private static final Object staticLock = new Object();
-    
     /** log4j category */
     private static final Logger log = Logger.getLogger(CommunityListServlet.class);
 
@@ -77,13 +68,14 @@ public class CommunityListServlet extends DSpaceServlet
         // can they admin communities?
         if (authorizeService.isAdmin(context))
         {
-            commMap.put(comID, comms);
-            
-            for (int sub = 0; sub < comms.length; sub++) {
-                
-                build(comms[sub]);
-            }
+            // set a variable to create an edit button
+            request.setAttribute("admin_button", Boolean.TRUE);
         }
+
+        request.setAttribute("communities", communities);
+        request.setAttribute("collections.map", colMap);
+        request.setAttribute("subcommunities.map", commMap);
+        JSPManager.showJSP(request, response, "/community-list.jsp");
     }
     /*
      * Get all subcommunities and collections from a community

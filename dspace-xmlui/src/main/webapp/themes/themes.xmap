@@ -8,15 +8,6 @@
     http://www.dspace.org/license/
 
 -->
-<!--
-
-    themes.xmap
-    Mobile theme for DSpace 1.6
-    Last update by James Russell <james@ohiolink.edu>
-    September 12, 2012
-	
--->
-
 <map:sitemap xmlns:map="http://apache.org/cocoon/sitemap/1.0">
 	<map:components>
 
@@ -27,20 +18,14 @@
 					{theme} and {themeName}.
 					-->
 			<map:matcher name="ThemeMatcher" src="org.dspace.app.xmlui.cocoon.ThemeMatcher"/>
-			<map:matcher name="WildcardHostMatcher" src="org.apache.cocoon.matching.WildcardHostMatcher"/>
 		</map:matchers>
 		
 	</map:components>
 
 
 	<map:pipelines>
-	
-	    <!-- match the new domain and limit it to use the mobile theme -->
 		<map:pipeline>
-			<map:match type="WildcardHostMatcher" pattern="mobile.*">
-				<map:mount uri-prefix="" src="mobile/"/>
-			</map:match>
-
+			
 			<!--
 					Theme Rules
 					-->

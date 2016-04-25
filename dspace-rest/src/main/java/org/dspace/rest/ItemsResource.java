@@ -705,14 +705,6 @@ public class ItemsResource extends Resource
         {
             processException("Could not delete item(id=" + itemId + "), AuthorizeException. Message: " + e, context);
             throw new WebApplicationException(Response.Status.INTERNAL_SERVER_ERROR);
-        } finally {
-            if(context != null) {
-                try {
-                    context.complete();
-                } catch (SQLException e) {
-                    log.error(e.getMessage() + " occurred while trying to close");
-                }
-            }
         }
         catch (IOException e)
         {
