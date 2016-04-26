@@ -4,19 +4,21 @@
 <div id="file.news.div.news" n="news" rend="primary">
 <head>DSpace Demo Repository</head>
 <p>Welcome to the DSpace.org demostration/sample repository (Manakin / XMLUI interface)!</p>
-<p>This repository is currently running on <hi rend="bold">DSpace version 4.2</hi>, with the following extra features enabled:
+<p>This repository is currently running on <hi rend="bold">DSpace version 6.0-rc1</hi>, with the following extra features enabled:
   <list>
 <!-- we can't enable this because it breaks JSPUI submission process (the step doesn't exist there)
 	<item>Embargo option in Submission process</item>
 -->
 	<item>Authority Control (on Authors and Publishers) in Submission process</item>
+        <item>Embargo in Submission process</item>
 	<item>Community/Collection/Item Statistics are publicly visible</item>
 	<item>OpenSearch</item>
 	<item>Google Scholar metadata</item>
-	<item>DSpace Discovery (faceted search/browse)</item>
 	<item>SWORD Client</item>
 	<item><xref target="http://mobile.demo.dspace.org/xmlui/">Mobile Theme</xref></item>
 	<item>Elastic Search Statistics (login as admin and browse to any community/collection/item, then choose the last 'View Usage Statistics' link from the menu)</item>
+        <item>ORCID integration</item>
+        <item>PDF CoverPage generation</item>
   </list>
 </p>
 <br />
