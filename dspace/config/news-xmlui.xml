@@ -9,6 +9,7 @@
 <!-- we can't enable this because it breaks JSPUI submission process (the step doesn't exist there)
 	<item>Embargo option in Submission process</item>
 -->
+	<item>Mirage 2 responsive theme</item>
 	<item>Authority Control (on Authors and Publishers) in Submission process</item>
         <item>Embargo in Submission process</item>
 	<item>Community/Collection/Item Statistics are publicly visible</item>
