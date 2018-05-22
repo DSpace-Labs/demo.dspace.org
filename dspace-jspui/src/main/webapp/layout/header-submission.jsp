@@ -101,6 +101,18 @@
   <script src="<%= request.getContextPath() %>/static/js/html5shiv.js"></script>
   <script src="<%= request.getContextPath() %>/static/js/respond.min.js"></script>
 <![endif]-->
+
+<!-- CUSTOM FOR DEMO.DSPACE.ORG: Dont allow EPerson Emails to be edited, so no one can change default admin acct emails. -->
+   <script type="text/javascript">
+       jQuery(function() {
+           // Change label for email field in "Edit E-Person"
+           jQuery("label[for='temail']").text("Email (editing disabled on demo.dspace.org):");
+           // Make email field in "Edit E-Person" READ-ONLY
+           jQuery("#temail").prop("readonly", true);
+       });
+   </script>
+
+
     </head>
 
     <%-- HACK: leftmargin, topmargin: for non-CSS compliant Microsoft IE browser --%>

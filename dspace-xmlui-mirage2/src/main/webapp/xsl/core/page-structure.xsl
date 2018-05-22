@@ -319,6 +319,16 @@
                 <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">&#160;</script>
             </xsl:if>
 
+<!-- CUSTOM FOR DEMO.DSPACE.ORG: Don't allow EPerson Emails to be edited, so no one can change default admin acct emails. -->
+   <script type="text/javascript">
+       jQuery(function() {
+           // Change label for email field in "Edit E-Person"
+           jQuery("label[for='aspect_administrative_eperson_EditEPersonForm_field_email_address']").text("Email Address (editing is disabled on demo.dspace.org)");
+           // Make email field in "Edit E-Person" READ-ONLY
+           jQuery("#aspect_administrative_eperson_EditEPersonForm_field_email_address").prop("readonly", true);
+        });
+   </script>
+
         </head>
     </xsl:template>
 
